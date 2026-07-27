@@ -1,0 +1,234 @@
+{
+  "entities": {
+    "Customer": {
+      "title": "Customer",
+      "description": "Information about a client or lead",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "projectLocation": { "type": "string" },
+        "leadSource": { "type": "string" },
+        "dateOfInquiry": { "type": "string" },
+        "budget": { "type": "number" },
+        "status": { "type": "string", "enum": ["Lead", "Design", "In Progress", "Completed"] },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "phone", "email", "status"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "An interior design project linked to a customer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "customerId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "roomTypes": { "type": "array" },
+        "stylePreference": { "type": "string" },
+        "colorPreferences": { "type": "string" },
+        "materialPreferences": { "type": "string" },
+        "furnitureRequirements": { "type": "string" },
+        "falseCeiling": { "type": "boolean" },
+        "lighting": { "type": "string" },
+        "electricalRequirements": { "type": "string" },
+        "kitchenDetails": { "type": "string" },
+        "wardrobeDetails": { "type": "string" },
+        "timelineWeeks": { "type": "number" },
+        "budget": { "type": "number" },
+        "referenceImages": { "type": "array" },
+        "siteMeasurements": { "type": "array" },
+        "designNotes": { "type": "string" },
+        "qrCode": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["customerId", "customerName", "budget"]
+    },
+    "PortfolioItem": {
+      "title": "PortfolioItem",
+      "description": "Showcase projects of Nilachal Creatives",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "location": { "type": "string" },
+        "areaSqFt": { "type": "number" },
+        "budgetRange": { "type": "string" },
+        "completionDate": { "type": "string" },
+        "category": { "type": "string" },
+        "beforeImage": { "type": "string" },
+        "afterImage": { "type": "string" },
+        "galleryImages": { "type": "array" }
+      },
+      "required": ["title", "category", "afterImage"]
+    },
+    "Warranty": {
+      "title": "Warranty",
+      "description": "Warranty tracker for items installed in completed projects",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "productInstalled": { "type": "string" },
+        "brand": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "warrantyCardUrl": { "type": "string" },
+        "invoiceUrl": { "type": "string" },
+        "serviceHistory": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["projectId", "productInstalled", "brand", "startDate", "endDate"]
+    },
+    "Document": {
+      "title": "Document",
+      "description": "Project associated files and plans",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string", "enum": ["Quotation", "Drawing", "2D Plan", "3D Render", "Invoice", "Agreement", "Site Photo", "Completion Certificate"] },
+        "fileUrl": { "type": "string" },
+        "fileName": { "type": "string" },
+        "fileSize": { "type": "string" },
+        "uploadedAt": { "type": "string" }
+      },
+      "required": ["projectId", "title", "category", "fileName"]
+    },
+    "ProjectUpdate": {
+      "title": "ProjectUpdate",
+      "description": "Daily site update for a project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "progressPercentage": { "type": "number" },
+        "statusText": { "type": "string" },
+        "workCompleted": { "type": "string" },
+        "photos": { "type": "array" },
+        "date": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["projectId", "progressPercentage", "statusText", "date"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Payment records for projects",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "customerName": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["Estimate", "Advance", "Progressive", "Final"] },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["Paid", "Pending", "Overdue"] },
+        "invoiceNumber": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["projectId", "amount", "type", "date", "status"]
+    },
+    "TeamMember": {
+      "title": "TeamMember",
+      "description": "Contractor or site worker details",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string", "enum": ["Carpenter", "Electrician", "Plumber", "Painter", "Supervisor", "Designer"] },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "assignedTasks": { "type": "array" },
+        "attendance": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["name", "role", "phone"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Material inventory stock levels",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unit": { "type": "string" },
+        "minRequired": { "type": "number" },
+        "location": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["name", "category", "quantity", "unit"]
+    },
+    "ScheduleItem": {
+      "title": "ScheduleItem",
+      "description": "Site visits and calendar scheduling",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "projectName": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "purpose": { "type": "string" },
+        "assignedTo": { "type": "string" },
+        "status": { "type": "string", "enum": ["Scheduled", "Completed", "Cancelled"] }
+      },
+      "required": ["title", "date", "time", "status"]
+    }
+  },
+  "firestore": {
+    "customers": {
+      "schema": { "$ref": "#/entities/Customer" },
+      "description": "Customer profiles and lead management"
+    },
+    "projects": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Detailed project designs, timelines, and budgets"
+    },
+    "portfolio": {
+      "schema": { "$ref": "#/entities/PortfolioItem" },
+      "description": "Public showcase items for portfolio"
+    },
+    "warranties": {
+      "schema": { "$ref": "#/entities/Warranty" },
+      "description": "Warranty certificates and service trackers"
+    },
+    "documents": {
+      "schema": { "$ref": "#/entities/Document" },
+      "description": "Project drawings, 2D/3D plans, invoices"
+    },
+    "team": {
+      "schema": { "$ref": "#/entities/TeamMember" },
+      "description": "Contractors and assignments"
+    },
+    "inventory": {
+      "schema": { "$ref": "#/entities/InventoryItem" },
+      "description": "Material inventory tracking"
+    },
+    "schedules": {
+      "schema": { "$ref": "#/entities/ScheduleItem" },
+      "description": "Calendar meetings and site visits"
+    },
+    "projects/{projectId}/updates": {
+      "schema": { "$ref": "#/entities/ProjectUpdate" },
+      "description": "Daily progress logs with photographs for clients and supervision"
+    },
+    "projects/{projectId}/payments": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Financial payments ledger for tracking invoices, advances, and dues"
+    }
+  }
+}
