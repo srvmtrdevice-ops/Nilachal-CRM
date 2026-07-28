@@ -580,6 +580,14 @@ export const api = {
       return newId;
     }
   },
+  deleteUpdate: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "updates", id));
+    } catch {}
+    const local = getLocalStorageItem("updates", initialUpdates);
+    const filtered = local.filter(u => u.id !== id);
+    saveLocalStorageItem("updates", filtered);
+  },
 
   // 7. TEAM MEMBERS
   getTeam: async (): Promise<TeamMember[]> => {

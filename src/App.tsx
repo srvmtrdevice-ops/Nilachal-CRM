@@ -320,6 +320,23 @@ export default function App() {
     setUpdates(prev => [{ id, ...upd }, ...prev]);
   };
 
+  const handleDeleteUpdate = async (id: string): Promise<void> => {
+    const upd = updates.find(u => u.id === id);
+    const detailsName = upd ? `${upd.projectName} - ${upd.statusText} (${upd.date})` : "";
+
+    setConfirmDelete({
+      isOpen: true,
+      title: "Delete Daily Site Log",
+      message: "Are you sure you want to permanently delete this daily site progress log? This action is irreversible and will remove the timeline log entry.",
+      itemDetails: detailsName,
+      onConfirm: async () => {
+        await api.deleteUpdate(id);
+        setUpdates(prev => prev.filter(u => u.id !== id));
+        setConfirmDelete(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const handleAddTeamMember = async (member: Omit<TeamMember, "id" | "createdAt">) => {
     const id = await api.addTeamMember(member);
     setTeam(prev => [...prev, { id, ...member }]);
@@ -627,6 +644,8 @@ export default function App() {
                   updates={updates}
                   projects={projects}
                   onAdd={handleAddUpdate}
+                  onDelete={handleDeleteUpdate}
+                  isAdmin={isAuthenticated}
                 />
               )}
 

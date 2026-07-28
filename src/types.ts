@@ -130,6 +130,8 @@ export interface ProjectUpdate {
   statusText: string;
   workCompleted: string;
   photos: string[]; // Site photo urls or base64
+  videoUrl?: string; // Video URL or base64 data
+  videos?: string[]; // Array of video URLs
   date: string;
   createdAt: string;
 }
