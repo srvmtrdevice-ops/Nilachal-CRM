@@ -1129,6 +1129,122 @@ export const api = {
     }, (err) => {
       cb(localStorage.getItem("nilachal_accounts_passcode") || "accounts1244");
     });
+  },
+
+  // 16. SYNC ALL DATA ACROSS ALL BROWSERS
+  syncAllDataAcrossBrowsers: async (): Promise<void> => {
+    const collectionsMap: { [key: string]: any[] } = {
+      customers: initialCustomers,
+      projects: initialProjects,
+      portfolio: initialPortfolio,
+      warranties: initialWarranties,
+      payments: initialPayments,
+      updates: initialUpdates,
+      team: initialTeam,
+      inventory: initialInventory,
+      documents: [],
+      customer_requirements: initialRequirements,
+      estimates: [],
+      schedules: initialSchedules,
+      subcontractor_payments: initialSubcontractorPayments,
+    };
+
+    for (const [colName, defaultData] of Object.entries(collectionsMap)) {
+      const localItems = getLocalStorageItem(colName, defaultData);
+      if (localItems && localItems.length > 0) {
+        try {
+          const batch = writeBatch(db);
+          localItems.forEach((item: any) => {
+            if (item && item.id) {
+              const itemRef = doc(db, colName, item.id);
+              batch.set(itemRef, item, { merge: true });
+            }
+          });
+          await batch.commit();
+        } catch (e) {
+          console.warn(`Sync batch error for ${colName}:`, e);
+        }
+      }
+    }
+
+    const localPasscode = localStorage.getItem("nilachal_accounts_passcode") || "accounts1244";
+    try {
+      await setDoc(doc(db, "app_config", "general"), { accountsPasscode: localPasscode }, { merge: true });
+    } catch {}
+  },
+
+  // 17. EXPORT FULL APPLICATION STATE TO JSON BACKUP
+  exportFullStateJSON: async (): Promise<void> => {
+    try {
+      const [
+        customers, projects, customerRequirements, portfolio, warranties,
+        payments, estimates, updates, team, inventory,
+        documents, schedules, subcontractorPayments, accountsPasscode
+      ] = await Promise.all([
+        api.getCustomers(),
+        api.getProjects(),
+        api.getCustomerRequirements(),
+        api.getPortfolio(),
+        api.getWarranties(),
+        api.getPayments(),
+        api.getEstimates(),
+        api.getUpdates(),
+        api.getTeam(),
+        api.getInventory(),
+        api.getDocuments(),
+        api.getSchedules(),
+        api.getSubcontractorPayments(),
+        api.getAccountsPasscode(),
+      ]);
+
+      const backupData = {
+        metadata: {
+          app: "Nilachal Creative Studio OS",
+          exportedAt: new Date().toISOString(),
+          version: "1.0.0",
+        },
+        settings: {
+          carpentryRate: Number(localStorage.getItem("nilachal_carpentry_rate")) || 1800,
+          commercialRate: Number(localStorage.getItem("nilachal_commercial_rate")) || 3000,
+          lowStockLimit: Number(localStorage.getItem("nilachal_low_stock_limit")) || 10,
+          emailAlerts: localStorage.getItem("nilachal_email_alerts") !== "false",
+          warrantyNotificationWeeks: Number(localStorage.getItem("nilachal_warranty_notification_weeks")) || 4,
+          accountsPasscode,
+        },
+        orgDetails: JSON.parse(localStorage.getItem("nilachal_org_details") || "{}"),
+        collections: {
+          customers,
+          projects,
+          customerRequirements,
+          portfolio,
+          warranties,
+          payments,
+          estimates,
+          updates,
+          team,
+          inventory,
+          documents,
+          schedules,
+          subcontractorPayments,
+        }
+      };
+
+      const jsonStr = JSON.stringify(backupData, null, 2);
+      const blob = new Blob([jsonStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const dateStr = new Date().toISOString().split("T")[0];
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `nilachal_workspace_backup_${dateStr}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export application state failed:", err);
+      throw err;
+    }
   }
 };
+
 

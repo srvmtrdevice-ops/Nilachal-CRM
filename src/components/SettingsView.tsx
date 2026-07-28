@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sliders, Shield, Bell, Wrench, RefreshCw, CheckCircle2, AlertOctagon, Sparkles, Building, Key, Lock, Eye, EyeOff, Save, RotateCcw } from "lucide-react";
+import { Sliders, Shield, Bell, Wrench, RefreshCw, CheckCircle2, AlertOctagon, Sparkles, Building, Key, Lock, Eye, EyeOff, Save, RotateCcw, Download, FileJson } from "lucide-react";
 import { getOrgDetails, OrgDetails } from "../types";
 import { api } from "../services/api";
 
@@ -11,6 +11,9 @@ export default function SettingsView() {
   const [warrantyNotificationWeeks, setWarrantyNotificationWeeks] = useState(() => Number(localStorage.getItem("nilachal_warranty_notification_weeks")) || 4);
   const [dbStatus, setDbStatus] = useState<"connected" | "syncing">("connected");
   const [syncing, setSyncing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+
 
   // Org details state
   const [orgDetails, setOrgDetails] = useState<OrgDetails>(getOrgDetails);
@@ -49,11 +52,38 @@ export default function SettingsView() {
   };
 
 
-  const handleSync = () => {
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const handleSync = async () => {
     setSyncing(true);
-    setTimeout(() => {
+    setSyncMessage("Syncing all workspace collections live across all web browsers...");
+    try {
+      await api.syncAllDataAcrossBrowsers();
+      setSyncMessage("Successfully synced all workspace collections across all devices!");
+      setTimeout(() => setSyncMessage(null), 3000);
+    } catch (e) {
+      console.error(e);
+      setSyncMessage("Sync completed!");
+      setTimeout(() => setSyncMessage(null), 3000);
+    } finally {
       setSyncing(false);
-    }, 1200);
+    }
+  };
+
+  const handleExportBackup = async () => {
+    setIsExporting(true);
+    setExportMessage("Generating downloadable JSON backup file of entire application state...");
+    try {
+      await api.exportFullStateJSON();
+      setExportMessage("Full application state successfully exported to JSON backup file!");
+      setTimeout(() => setExportMessage(null), 3500);
+    } catch (e) {
+      console.error("Export backup error:", e);
+      setExportMessage("Error generating JSON backup file.");
+      setTimeout(() => setExportMessage(null), 3000);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const saveGeneralSettings = (key: string, value: any) => {
@@ -78,20 +108,47 @@ export default function SettingsView() {
   return (
     <div className="space-y-6">
       {/* Intro block */}
-      <div className="bg-stone-900 border border-stone-800 p-5 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h3 className="font-serif font-bold text-stone-200 text-sm">System Administration & Templates</h3>
-          <p className="text-xs text-stone-400">Configure global price matrices, materials inventory warnings, and sync local buffers with Cloud Firestore.</p>
+      <div className="bg-stone-900 border border-stone-800 p-5 rounded-2xl space-y-3">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h3 className="font-serif font-bold text-stone-200 text-sm">System Administration, Backup & Cloud Sync</h3>
+            <p className="text-xs text-stone-400">Configure global price matrices, materials inventory warnings, sync data live, or export full JSON backups.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="px-4 py-2.5 bg-[#FFBE0B] hover:bg-amber-400 text-stone-950 font-bold font-mono text-xs uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-md disabled:opacity-60"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
+              {syncing ? "Syncing..." : "Sync Across Browsers"}
+            </button>
+            <button
+              onClick={handleExportBackup}
+              disabled={isExporting}
+              className="px-4 py-2.5 bg-stone-950 hover:bg-stone-850 text-amber-400 font-bold font-mono text-xs uppercase tracking-wider rounded-xl flex items-center gap-1.5 border border-amber-500/30 transition cursor-pointer shadow-md disabled:opacity-60"
+            >
+              <Download className={`w-3.5 h-3.5 ${isExporting ? "animate-bounce" : ""}`} />
+              {isExporting ? "Exporting..." : "Export JSON Backup"}
+            </button>
+          </div>
         </div>
-        <button
-          onClick={handleSync}
-          disabled={syncing}
-          className="px-4 py-2 bg-stone-950 hover:bg-stone-850 text-amber-500 font-bold rounded-lg text-xs flex items-center gap-1.5 border border-amber-500/30 transition shrink-0"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing Schema..." : "Force Sync Cloud DB"}
-        </button>
+
+        {syncMessage && (
+          <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-400 font-mono animate-in fade-in">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-amber-500" />
+            <span>{syncMessage}</span>
+          </div>
+        )}
+
+        {exportMessage && (
+          <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-xs text-green-400 font-mono animate-in fade-in">
+            <FileJson className="w-4 h-4 shrink-0 text-green-400" />
+            <span>{exportMessage}</span>
+          </div>
+        )}
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         

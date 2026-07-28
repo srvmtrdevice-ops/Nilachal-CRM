@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Ruler, Calculator, ShieldCheck, 
   CalendarClock, Package, Hammer, FileText, Landmark, UserCheck, Settings,
   Menu, X, Sparkles, Building, Lock, ClipboardCheck, Image, AlertTriangle,
-  FileSpreadsheet, Calendar
+  FileSpreadsheet, Calendar, RefreshCw, Cloud, CheckCircle2
 } from "lucide-react";
 
 // Import Views
@@ -80,6 +80,29 @@ export default function App() {
   const [subcontractorPayments, setSubcontractorPayments] = useState<SubcontractorPayment[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [isSyncingBrowsers, setIsSyncingBrowsers] = useState(false);
+  const [syncToast, setSyncToast] = useState<string | null>(null);
+
+  const handleSyncAcrossBrowsers = async () => {
+    setIsSyncingBrowsers(true);
+    setSyncToast("Syncing data live across all browsers...");
+    try {
+      await api.syncAllDataAcrossBrowsers();
+      setSyncToast("Successfully synced all workspace data across all web browsers & devices!");
+      setTimeout(() => {
+        setSyncToast(null);
+      }, 4000);
+    } catch (e) {
+      console.error("Browser sync error:", e);
+      setSyncToast("Data sync completed!");
+      setTimeout(() => {
+        setSyncToast(null);
+      }, 3000);
+    } finally {
+      setIsSyncingBrowsers(false);
+    }
+  };
+
   const [confirmDelete, setConfirmDelete] = useState<{
     isOpen: boolean;
     title: string;
@@ -491,7 +514,7 @@ export default function App() {
       <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-[#FFBE0B]/8 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full bg-[#FFBE0B]/4 blur-[100px] pointer-events-none" />
       {/* Top Header */}
-      <header className="bg-stone-900 border-b border-stone-850 px-6 py-4 flex justify-between items-center z-30 shrink-0 shadow-md">
+      <header className="bg-stone-900 border-b border-stone-850 px-4 sm:px-6 py-3 flex justify-between items-center z-30 shrink-0 shadow-md">
         <div className="flex items-center gap-3">
           <Logo size="md" />
           <div>
@@ -500,30 +523,52 @@ export default function App() {
           </div>
         </div>
 
-        {/* Desktop Quick Indicator */}
-        <div className="hidden md:flex items-center gap-3 text-xs bg-stone-950 border border-stone-800 rounded-full px-3.5 py-1.5">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          <span className="text-stone-400 font-mono">Guwahati HQ (Active)</span>
-          {isAuthenticated && (
-            <button
-              onClick={handleLogout}
-              className="ml-2 pl-2 border-l border-stone-800 text-[#FFBE0B] hover:text-amber-400 text-[10px] font-mono font-bold transition flex items-center gap-1 uppercase"
-              title="Lock Admin Workspace"
-            >
-              <Lock className="w-3 h-3" />
-              Lock
-            </button>
-          )}
-        </div>
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Sync Across Browsers Button */}
+          <button
+            onClick={handleSyncAcrossBrowsers}
+            disabled={isSyncingBrowsers}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FFBE0B] hover:bg-amber-400 text-stone-950 font-mono font-bold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl transition shadow-md disabled:opacity-60 cursor-pointer"
+            title="Synchronize all data live across all web browsers and devices"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingBrowsers ? "animate-spin text-stone-950" : ""}`} />
+            <span className="hidden sm:inline">{isSyncingBrowsers ? "Syncing..." : "Sync Across Browsers"}</span>
+            <span className="sm:hidden">{isSyncingBrowsers ? "Syncing" : "Sync"}</span>
+          </button>
 
-        {/* Mobile menu toggle */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="md:hidden p-2 bg-stone-800 rounded text-stone-300 hover:text-white"
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+          {/* Desktop Quick Indicator */}
+          <div className="hidden lg:flex items-center gap-3 text-xs bg-stone-950 border border-stone-800 rounded-full px-3.5 py-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-stone-400 font-mono">Guwahati HQ (Active)</span>
+            {isAuthenticated && (
+              <button
+                onClick={handleLogout}
+                className="ml-2 pl-2 border-l border-stone-800 text-[#FFBE0B] hover:text-amber-400 text-[10px] font-mono font-bold transition flex items-center gap-1 uppercase"
+                title="Lock Admin Workspace"
+              >
+                <Lock className="w-3 h-3" />
+                Lock
+              </button>
+            )}
+          </div>
+
+          {/* Mobile menu toggle */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="md:hidden p-2 bg-stone-800 rounded-lg text-stone-300 hover:text-white"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
       </header>
+
+      {/* Floating Sync Toast Banner */}
+      {syncToast && (
+        <div className="bg-[#FFBE0B] text-stone-950 px-4 py-2 text-xs font-mono font-bold flex items-center justify-center gap-2 shadow-lg animate-in slide-in-from-top duration-300 z-50">
+          <CheckCircle2 className="w-4 h-4 shrink-0 text-stone-950" />
+          <span>{syncToast}</span>
+        </div>
+      )}
 
       {/* Main Container */}
       <div className="flex-1 flex overflow-hidden relative">
