@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Sliders, Shield, Bell, Wrench, RefreshCw, CheckCircle2, AlertOctagon, Sparkles, Building } from "lucide-react";
+import { Sliders, Shield, Bell, Wrench, RefreshCw, CheckCircle2, AlertOctagon, Sparkles, Building, Key, Lock, Eye, EyeOff, Save, RotateCcw } from "lucide-react";
 import { getOrgDetails, OrgDetails } from "../types";
 
 export default function SettingsView() {
@@ -14,6 +14,31 @@ export default function SettingsView() {
   // Org details state
   const [orgDetails, setOrgDetails] = useState<OrgDetails>(getOrgDetails);
   const [showSavedBadge, setShowSavedBadge] = useState(false);
+
+  // Accounts Office passcode state
+  const [accountsPasscode, setAccountsPasscode] = useState(() => localStorage.getItem("nilachal_accounts_passcode") || "accounts1244");
+  const [showAccountsPasscode, setShowAccountsPasscode] = useState(false);
+  const [accountsPasscodeMessage, setAccountsPasscodeMessage] = useState<string | null>(null);
+
+  const handleSaveAccountsPasscode = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountsPasscode.trim()) return;
+    localStorage.setItem("nilachal_accounts_passcode", accountsPasscode.trim());
+    setAccountsPasscodeMessage("Accounts Office passcode updated successfully!");
+    setTimeout(() => {
+      setAccountsPasscodeMessage(null);
+    }, 3000);
+  };
+
+  const handleResetAccountsPasscode = () => {
+    const defaultPass = "accounts1244";
+    setAccountsPasscode(defaultPass);
+    localStorage.setItem("nilachal_accounts_passcode", defaultPass);
+    setAccountsPasscodeMessage("Accounts Office passcode reset to default (accounts1244)!");
+    setTimeout(() => {
+      setAccountsPasscodeMessage(null);
+    }, 3000);
+  };
 
   const handleSync = () => {
     setSyncing(true);
@@ -210,6 +235,68 @@ export default function SettingsView() {
               </span>
             )}
           </div>
+        </div>
+
+        {/* Accounts Office Password Management */}
+        <div className="bg-stone-900 border border-stone-800 rounded-2xl p-5 space-y-4 md:col-span-2">
+          <h4 className="text-xs font-bold text-stone-400 uppercase tracking-widest flex items-center gap-1.5 border-b border-stone-850 pb-2">
+            <Key className="w-4 h-4 text-amber-500" /> Accounts Office Passcode & Access Control
+          </h4>
+          
+          <form onSubmit={handleSaveAccountsPasscode} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+              <div className="space-y-1.5">
+                <label className="text-stone-400 text-xs font-semibold flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-amber-500" /> Accounts Tab Passcode
+                </label>
+                <div className="relative">
+                  <input
+                    type={showAccountsPasscode ? "text" : "password"}
+                    value={accountsPasscode}
+                    onChange={(e) => setAccountsPasscode(e.target.value)}
+                    placeholder="Enter passcode"
+                    className="w-full bg-stone-950 border border-stone-850 rounded-xl px-3 py-2.5 text-stone-200 text-xs font-mono outline-none focus:border-amber-500/60 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAccountsPasscode(!showAccountsPasscode)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-500 hover:text-stone-300 transition cursor-pointer"
+                    tabIndex={-1}
+                  >
+                    {showAccountsPasscode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-mono font-bold uppercase tracking-wider rounded-xl transition flex items-center gap-1.5 shadow-md cursor-pointer"
+                >
+                  <Save className="w-3.5 h-3.5" /> Save Passcode
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetAccountsPasscode}
+                  className="px-3 py-2.5 bg-stone-950 hover:bg-stone-850 text-stone-400 hover:text-stone-200 border border-stone-800 text-xs font-mono font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+                  title="Reset password back to default (accounts1244)"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Reset Default
+                </button>
+              </div>
+            </div>
+
+            {accountsPasscodeMessage && (
+              <div className="flex items-center gap-2 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-400 font-mono animate-in fade-in">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-amber-500" />
+                <span>{accountsPasscodeMessage}</span>
+              </div>
+            )}
+
+            <p className="text-[10px] text-stone-500 italic">
+              This passcode protects the Accounts Office tab, restricting unauthorized staff from inspecting full financial ledger entries and exporting monthly invoice packs.
+            </p>
+          </form>
         </div>
 
         {/* System Credentials Information */}

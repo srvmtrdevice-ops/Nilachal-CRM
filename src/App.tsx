@@ -22,6 +22,7 @@ import SettingsView from "./components/SettingsView";
 import PortfolioView from "./components/PortfolioView";
 import EstimateView from "./components/EstimateView";
 import ScheduleView from "./components/ScheduleView";
+import AccountsOfficeView from "./components/AccountsOfficeView";
 import Logo from "./components/Logo";
 import AdminPasscodeGate from "./components/AdminPasscodeGate";
 
@@ -46,6 +47,7 @@ type ActiveTab =
   | "inventory" 
   | "team" 
   | "payments" 
+  | "accounts"
   | "portal" 
   | "gallery"
   | "settings";
@@ -477,6 +479,7 @@ export default function App() {
     { id: "inventory", label: "Inventory", icon: Package },
     { id: "team", label: "Subcontractors", icon: Hammer },
     { id: "payments", label: "Ledger & Invoices", icon: Landmark },
+    { id: "accounts", label: "Accounts Office", icon: Building },
     { id: "portal", label: "Client Portal", icon: UserCheck },
     { id: "requirements", label: "Client Requirements", icon: ClipboardCheck },
     { id: "gallery", label: "Gallery", icon: Image },
@@ -546,7 +549,7 @@ export default function App() {
                     <Icon className="w-4 h-4 shrink-0" />
                     <span>{item.label}</span>
                   </div>
-                  {!isAuthenticated && item.id !== "portal" && item.id !== "requirements" && item.id !== "gallery" && (
+                  {!isAuthenticated && item.id !== "portal" && item.id !== "requirements" && item.id !== "gallery" && item.id !== "accounts" && (
                     <Lock className={`w-3 h-3 shrink-0 ${isActive ? "text-stone-950" : "text-stone-500"}`} />
                   )}
                 </button>
@@ -602,7 +605,7 @@ export default function App() {
                           <Icon className="w-4 h-4 shrink-0" />
                           <span>{item.label}</span>
                         </div>
-                        {!isAuthenticated && item.id !== "portal" && item.id !== "requirements" && item.id !== "gallery" && (
+                        {!isAuthenticated && item.id !== "portal" && item.id !== "requirements" && item.id !== "gallery" && item.id !== "accounts" && (
                           <Lock className={`w-3 h-3 shrink-0 ${isActive ? "text-stone-950" : "text-stone-500"}`} />
                         )}
                       </button>
@@ -636,7 +639,7 @@ export default function App() {
               <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-xs text-stone-500 font-mono uppercase tracking-widest">Constructing Blueprint Space...</p>
             </div>
-          ) : !isAuthenticated && activeTab !== "portal" && activeTab !== "requirements" && activeTab !== "gallery" ? (
+          ) : !isAuthenticated && activeTab !== "portal" && activeTab !== "requirements" && activeTab !== "gallery" && activeTab !== "accounts" ? (
             <AdminPasscodeGate onSuccess={() => setIsAuthenticated(true)} />
           ) : (
             <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-300">
@@ -762,6 +765,13 @@ export default function App() {
                   onAdd={handleAddPayment}
                   onMarkPaid={handleMarkPaymentPaid}
                   onDelete={handleDeletePayment}
+                />
+              )}
+
+              {activeTab === "accounts" && (
+                <AccountsOfficeView 
+                  payments={payments}
+                  projects={projects}
                 />
               )}
 

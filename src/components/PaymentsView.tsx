@@ -1,7 +1,10 @@
 import React, { useState } from "react";
-import { Plus, DollarSign, FileText, CheckCircle, AlertTriangle, Calendar, Printer, X, CreditCard, Clock, Trash2 } from "lucide-react";
+import { Plus, DollarSign, FileText, CheckCircle, AlertTriangle, Calendar, Printer, X, CreditCard, Clock, Trash2, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Payment, Project, getOrgDetails } from "../types";
 import Logo from "./Logo";
+import { drawPdfLogo } from "../utils/logoUtils";
 
 interface PaymentsViewProps {
   payments: Payment[];
@@ -81,6 +84,136 @@ export default function PaymentsView({ payments, projects, onAdd, onMarkPaid, on
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = (payment: Payment) => {
+    const doc = new jsPDF();
+
+    // Dark Header Banner
+    doc.setFillColor(28, 25, 23); // #1c1917
+    doc.rect(0, 0, 210, 38, "F");
+
+    // Render Brand Vector Logo
+    drawPdfLogo(doc, 12, 7, 24);
+
+    // Company Name & Info
+    doc.setTextColor(245, 189, 31); // Amber
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(orgDetails.name.toUpperCase(), 40, 15);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.text("High-End Modular Carpentry & Site Interiors", 40, 22);
+    doc.text(`${orgDetails.address} • Ph: ${orgDetails.phone} • Email: ${orgDetails.email}`, 40, 28);
+
+    // Sub-banner title
+    doc.setFillColor(245, 158, 11); // Amber accent
+    doc.rect(0, 38, 210, 10, "F");
+    doc.setTextColor(28, 25, 23);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("OFFICIAL PAYMENT INVOICE & RECEIPT", 14, 44.5);
+
+    // Customer & Invoice Details
+    doc.setTextColor(28, 25, 23);
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Billed To: ${payment.customerName}`, 14, 56);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Project Site: ${payment.projectName}`, 14, 62);
+    if (payment.customerEmail) {
+      doc.text(`Email: ${payment.customerEmail}`, 14, 68);
+    }
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`Invoice Ref: ${payment.invoiceNumber}`, 120, 56);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Invoice Date: ${payment.date}`, 120, 62);
+    doc.text(`Payment Mode: ${payment.paymentMode || "Bank Transfer"}`, 120, 68);
+    doc.text(`Status: ${payment.status.toUpperCase()}`, 120, 74);
+
+    doc.setDrawColor(229, 231, 235);
+    doc.line(14, 78, 196, 78);
+
+    // Table Columns & Rows
+    const tableColumn = ["#", "Milestone / Service Description", "Tax Scope", "Amount (INR)"];
+    const tableRows = [[
+      1,
+      payment.notes || `Interior design execution and fitments for project milestone: ${payment.type}`,
+      "CGST+SGST 0%",
+      `Rs. ${payment.amount.toLocaleString("en-IN")}`
+    ]];
+
+    autoTable(doc, {
+      startY: 82,
+      head: [tableColumn],
+      body: tableRows,
+      theme: "striped",
+      headStyles: {
+        fillColor: [245, 158, 11],
+        textColor: [28, 25, 23],
+        fontStyle: "bold",
+        fontSize: 9
+      },
+      bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
+      columnStyles: {
+        0: { cellWidth: 15 },
+        1: { cellWidth: 110 },
+        2: { cellWidth: 30, halign: "center" },
+        3: { cellWidth: 35, halign: "right" }
+      }
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY || 120;
+
+    // Financial Breakdown Box
+    doc.setFillColor(254, 243, 199); // Soft amber
+    doc.setDrawColor(245, 158, 11);
+    doc.roundedRect(120, finalY + 6, 76, 28, 2, 2, "FD");
+
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(28, 25, 23);
+    doc.text(`Subtotal:`, 124, finalY + 13);
+    doc.text(`Rs. ${payment.amount.toLocaleString("en-IN")}`, 190, finalY + 13, { align: "right" });
+
+    doc.text(`GST:`, 124, finalY + 19);
+    doc.text(`Included`, 190, finalY + 19, { align: "right" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`Total Amount:`, 124, finalY + 27);
+    doc.text(`Rs. ${payment.amount.toLocaleString("en-IN")}`, 190, finalY + 27, { align: "right" });
+
+    // Bank Details & Terms
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(28, 25, 23);
+    doc.text("Bank Account Details:", 14, finalY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139);
+    doc.text("Account Name: Nilachal Creatives", 14, finalY + 17);
+    doc.text("Account Number: 033311501000821 | IFSC: NESF0000333", 14, finalY + 22);
+
+    // Signatures
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(28, 25, 23);
+    doc.text(`For ${orgDetails.name}`, 130, finalY + 48);
+
+    doc.setDrawColor(203, 213, 225);
+    doc.line(130, finalY + 43, 190, finalY + 43);
+
+    // Computer Generated Invoice Disclaimer
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 116, 139);
+    doc.text("This is a computer generated invoice and does not need any signature.", 105, finalY + 58, { align: "center" });
+
+    const fileName = `Invoice_${payment.invoiceNumber.replace(/\s+/g, "_")}_Nilachal.pdf`;
+    doc.save(fileName);
   };
 
   return (
@@ -182,23 +315,31 @@ export default function PaymentsView({ payments, projects, onAdd, onMarkPaid, on
                       {p.status === "Pending" && (
                         <button
                           onClick={() => onMarkPaid(p.id)}
-                          className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[10px] font-semibold transition"
+                          className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-[10px] font-semibold transition cursor-pointer"
                         >
                           Mark Paid
                         </button>
                       )}
                       <button
-                        onClick={() => setInvoicePreview(p)}
-                        className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[10px] font-semibold flex items-center gap-1 transition"
+                        onClick={() => handleDownloadPDF(p)}
+                        className="px-2.5 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                        title="Download Invoice PDF directly"
                       >
-                        <Printer className="w-3 h-3" /> View Invoice
+                        <Download className="w-3 h-3" /> PDF
+                      </button>
+                      <button
+                        onClick={() => setInvoicePreview(p)}
+                        className="px-2.5 py-1 bg-stone-800 hover:bg-stone-700 text-stone-300 rounded text-[10px] font-semibold flex items-center gap-1 transition cursor-pointer"
+                        title="View / Print Invoice"
+                      >
+                        <Printer className="w-3 h-3" /> View
                       </button>
                       <button
                         onClick={() => onDelete(p.id)}
-                        className="px-2.5 py-1 bg-red-950/30 hover:bg-red-900/40 text-red-400 hover:text-red-300 rounded text-[10px] font-semibold flex items-center gap-1 transition border border-red-900/30"
+                        className="px-2.5 py-1 bg-red-950/30 hover:bg-red-900/40 text-red-400 hover:text-red-300 rounded text-[10px] font-semibold flex items-center gap-1 transition border border-red-900/30 cursor-pointer"
                         title="Delete Invoice"
                       >
-                        <Trash2 className="w-3 h-3" /> Delete
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
                   </td>
@@ -349,14 +490,22 @@ export default function PaymentsView({ payments, projects, onAdd, onMarkPaid, on
               <span className="font-serif font-bold text-sm text-amber-500">Nilachal Creatives Invoice Portal</span>
               <div className="flex gap-2">
                 <button
-                  onClick={handlePrint}
-                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-bold rounded-lg flex items-center gap-1 transition"
+                  onClick={() => handleDownloadPDF(invoicePreview)}
+                  className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-stone-950 text-xs font-bold rounded-lg flex items-center gap-1 transition cursor-pointer"
+                  title="Download Invoice PDF file"
                 >
-                  <Printer className="w-3.5 h-3.5" /> Print Invoice
+                  <Download className="w-3.5 h-3.5" /> Download PDF
+                </button>
+                <button
+                  onClick={handlePrint}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-bold rounded-lg flex items-center gap-1 transition cursor-pointer"
+                  title="Print invoice or save via browser print"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print
                 </button>
                 <button
                   onClick={() => setInvoicePreview(null)}
-                  className="p-1.5 hover:bg-stone-800 rounded transition text-stone-400 hover:text-white"
+                  className="p-1.5 hover:bg-stone-800 rounded transition text-stone-400 hover:text-white cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -470,6 +619,13 @@ export default function PaymentsView({ payments, projects, onAdd, onMarkPaid, on
                   <span className="text-[10px] text-stone-400 block mt-1.5">Authorized Signatory</span>
                   <span className="text-[9px] text-stone-500 block uppercase font-bold tracking-wider mt-0.5">{orgDetails.name}</span>
                 </div>
+              </div>
+
+              {/* Computer Generated Disclaimer */}
+              <div className="pt-6 border-t border-stone-200 text-center">
+                <p className="text-[11px] text-stone-500 italic font-mono">
+                  This is a computer generated invoice and does not need any signature.
+                </p>
               </div>
             </div>
           </div>
