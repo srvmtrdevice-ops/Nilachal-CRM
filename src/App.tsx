@@ -414,6 +414,25 @@ export default function App() {
   };
 
   const handleAddSubcontractorPayment = async (payment: Omit<SubcontractorPayment, "id" | "createdAt">) => {
+    // Check if duplicate entry already exists in React state
+    const trimmedRef = payment.referenceNo ? payment.referenceNo.trim().toLowerCase() : "";
+    const isRefDuplicate = trimmedRef !== "" && subcontractorPayments.some(p =>
+      p.referenceNo && p.referenceNo.trim().toLowerCase() === trimmedRef
+    );
+
+    const isIdenticalDuplicate = subcontractorPayments.some(p =>
+      p.memberId === payment.memberId &&
+      p.date === payment.date &&
+      Number(p.amount) === Number(payment.amount) &&
+      p.paymentType === payment.paymentType &&
+      (p.projectName || "General Workshop").trim() === (payment.projectName || "General Workshop").trim()
+    );
+
+    if (isRefDuplicate || isIdenticalDuplicate) {
+      console.warn("handleAddSubcontractorPayment blocked duplicate entry:", payment);
+      return;
+    }
+
     const id = await api.addSubcontractorPayment(payment);
     const newEntry: SubcontractorPayment = {
       id,

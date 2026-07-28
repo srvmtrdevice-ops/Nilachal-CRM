@@ -1074,12 +1074,36 @@ export const api = {
     }
   },
   addSubcontractorPayment: async (payment: Omit<SubcontractorPayment, "id" | "createdAt">): Promise<string> => {
+    const local = getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
+
+    // Duplicate payment prevention check
+    const trimmedRef = payment.referenceNo ? payment.referenceNo.trim().toLowerCase() : "";
+    const isRefDuplicate = trimmedRef !== "" && local.some(p => 
+      p.referenceNo && p.referenceNo.trim().toLowerCase() === trimmedRef
+    );
+
+    const isIdenticalDuplicate = local.some(p =>
+      p.memberId === payment.memberId &&
+      p.date === payment.date &&
+      Number(p.amount) === Number(payment.amount) &&
+      p.paymentType === payment.paymentType &&
+      (p.projectName || "General Workshop").trim() === (payment.projectName || "General Workshop").trim()
+    );
+
+    if (isRefDuplicate || isIdenticalDuplicate) {
+      console.warn("Prevented duplicate subcontractor payment creation in API service:", payment);
+      const existing = local.find(p =>
+        (trimmedRef !== "" && p.referenceNo && p.referenceNo.trim().toLowerCase() === trimmedRef) ||
+        (p.memberId === payment.memberId && p.date === payment.date && Number(p.amount) === Number(payment.amount))
+      );
+      if (existing) return existing.id;
+    }
+
     const id = `sp_${Date.now()}`;
     const payload = { 
       ...payment, 
       createdAt: new Date().toISOString() 
     };
-    const local = getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
     local.unshift({ id, ...payload });
     saveLocalStorageItem("subcontractor_payments", local);
 

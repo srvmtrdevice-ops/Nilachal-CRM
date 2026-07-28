@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { 
   Plus, Users, User, Hammer, Phone, Mail, Check, Calendar, 
   ClipboardList, Trash2, Edit2, X, Star, CreditCard, FileText, 
-  Download, Share2, DollarSign, ArrowUpRight, Building2, CheckCircle2
+  Download, Share2, DollarSign, ArrowUpRight, Building2, CheckCircle2,
+  AlertTriangle
 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -59,12 +60,13 @@ export default function TeamView({
 
   // Form states - Payment
   const [payAmount, setPayAmount] = useState<number>(5000);
-  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payDate, setPayDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [payType, setPayType] = useState<SubcontractorPayment["paymentType"]>("Progress Payment");
   const [payProject, setPayProject] = useState("");
   const [payMode, setPayMode] = useState<SubcontractorPayment["paymentMode"]>("UPI");
   const [payRef, setPayRef] = useState("");
   const [payNotes, setPayNotes] = useState("");
+  const [paymentDuplicateError, setPaymentDuplicateError] = useState<string | null>(null);
 
   const todayDate = new Date().toISOString().split('T')[0];
 
@@ -110,6 +112,7 @@ export default function TeamView({
     setPayMode("UPI");
     setPayRef("");
     setPayNotes("");
+    setPaymentDuplicateError(null);
     setPaymentFormOpen(true);
   };
 
@@ -167,7 +170,40 @@ export default function TeamView({
 
   const handleSubmitPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPaymentDuplicateError(null);
     if (!ledgerMember || !payAmount || payAmount <= 0) return;
+
+    // Duplicate Entry Prevention Logic
+    const trimmedRef = payRef ? payRef.trim().toLowerCase() : "";
+
+    // 1. Check for duplicate Transaction Reference Number
+    if (trimmedRef) {
+      const existingRefMatch = subcontractorPayments.find(p => 
+        p.referenceNo && p.referenceNo.trim().toLowerCase() === trimmedRef
+      );
+      if (existingRefMatch) {
+        setPaymentDuplicateError(
+          `Duplicate Entry Blocked: Transaction Ref/Cheque "${payRef}" was already logged for ${existingRefMatch.memberName} (₹${existingRefMatch.amount.toLocaleString("en-IN")} on ${existingRefMatch.date}).`
+        );
+        return;
+      }
+    }
+
+    // 2. Check for identical payment details for the same subcontractor
+    const existingIdenticalMatch = subcontractorPayments.find(p =>
+      p.memberId === ledgerMember.id &&
+      p.date === payDate &&
+      Number(p.amount) === Number(payAmount) &&
+      p.paymentType === payType &&
+      (p.projectName || "General Workshop").trim() === (payProject || "General Workshop").trim()
+    );
+
+    if (existingIdenticalMatch) {
+      setPaymentDuplicateError(
+        `Duplicate Entry Blocked: An identical payment of ₹${payAmount.toLocaleString("en-IN")} (${payType}) for ${ledgerMember.name} on ${payDate} at '${payProject || "General Workshop"}' already exists.`
+      );
+      return;
+    }
 
     if (onAddPayment) {
       await onAddPayment({
@@ -674,6 +710,17 @@ export default function TeamView({
             </div>
 
             <form onSubmit={handleSubmitPayment} className="p-6 space-y-4">
+              {/* Duplicate Payment Error Alert */}
+              {paymentDuplicateError && (
+                <div className="bg-red-500/10 border border-red-500/40 p-3 rounded-xl flex items-start gap-2.5 text-xs text-red-300 font-sans animate-in fade-in">
+                  <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <span className="font-bold block text-red-200">Duplicate Payment Detected</span>
+                    <p className="text-[11px] leading-relaxed opacity-90">{paymentDuplicateError}</p>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-stone-950 p-3 rounded-xl border border-stone-800 text-xs">
                 <div className="text-stone-400 font-mono text-[10px] uppercase">Subcontractor</div>
                 <div className="font-serif font-bold text-stone-100 text-sm">{ledgerMember.name}</div>
