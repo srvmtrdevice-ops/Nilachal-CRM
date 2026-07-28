@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { 
   Building, Lock, Eye, EyeOff, ShieldAlert, CheckCircle, Download, 
   Calendar, FileText, Landmark, Search, Filter, ArrowUpDown, CheckCircle2, 
@@ -9,6 +9,7 @@ import autoTable from "jspdf-autotable";
 import { Payment, Project, getOrgDetails } from "../types";
 import Logo from "./Logo";
 import { drawPdfLogo } from "../utils/logoUtils";
+import { api } from "../services/api";
 
 interface AccountsOfficeViewProps {
   payments: Payment[];
@@ -41,11 +42,12 @@ export default function AccountsOfficeView({ payments, projects }: AccountsOffic
   const orgDetails = getOrgDetails();
 
   // Handle Passcode Submission
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
 
-    const expectedPasscode = localStorage.getItem("nilachal_accounts_passcode") || "accounts1244";
+    const cloudPass = await api.getAccountsPasscode();
+    const expectedPasscode = cloudPass || localStorage.getItem("nilachal_accounts_passcode") || "accounts1244";
 
     if (passcode === expectedPasscode) {
       setAuthSuccess(true);
@@ -60,6 +62,7 @@ export default function AccountsOfficeView({ payments, projects }: AccountsOffic
       setPasscode("");
     }
   };
+
 
   const handleLockAccounts = () => {
     setIsAuthenticated(false);

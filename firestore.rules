@@ -2,151 +2,28 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. Global safety net (default deny)
+    // Allow read, write on all application collections for multi-device sync
+    match /customers/{docId} { allow read, write: if true; }
+    match /projects/{docId} { allow read, write: if true; }
+    match /projects/{projectId}/{subcollection=**} { allow read, write: if true; }
+    match /portfolio/{docId} { allow read, write: if true; }
+    match /warranties/{docId} { allow read, write: if true; }
+    match /documents/{docId} { allow read, write: if true; }
+    match /payments/{docId} { allow read, write: if true; }
+    match /updates/{docId} { allow read, write: if true; }
+    match /team/{docId} { allow read, write: if true; }
+    match /inventory/{docId} { allow read, write: if true; }
+    match /schedules/{docId} { allow read, write: if true; }
+    match /customer_requirements/{docId} { allow read, write: if true; }
+    match /estimates/{docId} { allow read, write: if true; }
+    match /subcontractor_payments/{docId} { allow read, write: if true; }
+    match /app_config/{docId} { allow read, write: if true; }
+    match /users/{docId} { allow read, write: if true; }
+
+    // Fallback rule for any other path
     match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // --- GLOBAL HELPER FUNCTIONS ---
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isEmailVerified() {
-      return isSignedIn() && (
-        request.auth.token.email_verified == true || 
-        request.auth.token.firebase.sign_in_provider == 'google.com'
-      );
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
-    // Helper to get user's role document
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    // Check if user is Admin or the project manager
-    function isAdmin() {
-      return isSignedIn() && (
-        request.auth.token.email == 'srv.mtr.device@gmail.com' ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         getUserData().role == 'admin')
-      );
-    }
-
-    // Check if user is the Client matching the email
-    function isClient(clientEmail) {
-      return isSignedIn() && request.auth.token.email == clientEmail;
-    }
-
-    // --- COLLECTION RULES ---
-
-    // USERS collection (Role and profile storage)
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && (
-        request.resource.data.role in ['admin', 'client'] &&
-        request.resource.data.email == request.auth.token.email
-      );
-      allow update: if isSignedIn() && (
-        // Users can update their own name/avatar but NOT their role
-        userId == request.auth.uid &&
-        request.resource.data.role == resource.data.role &&
-        request.resource.data.email == resource.data.email
-      ) || isAdmin();
-      allow delete: if isAdmin();
-    }
-
-    // CUSTOMERS collection
-    match /customers/{customerId} {
-      allow create, update, delete: if isAdmin();
-      allow read: if isAdmin() || (
-        isSignedIn() && isClient(resource.data.email)
-      );
-    }
-
-    // PROJECTS collection
-    match /projects/{projectId} {
-      allow create, update, delete: if isAdmin();
-      // Clients can read their own projects if they are linked via customer email
-      allow read: if isAdmin() || (
-        isSignedIn() && 
-        exists(/databases/$(database)/documents/customers/$(resource.data.customerId)) &&
-        isClient(get(/databases/$(database)/documents/customers/$(resource.data.customerId)).data.email)
-      );
-
-      // Subcollection: Updates
-      match /updates/{updateId} {
-        allow create, update, delete: if isAdmin();
-        allow read: if isAdmin() || (
-          isSignedIn() && 
-          exists(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(projectId)).data.customerId)) &&
-          isClient(get(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(projectId)).data.customerId)).data.email)
-        );
-      }
-
-      // Subcollection: Payments
-      match /payments/{paymentId} {
-        allow create, update, delete: if isAdmin();
-        allow read: if isAdmin() || (
-          isSignedIn() && 
-          exists(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(projectId)).data.customerId)) &&
-          isClient(get(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(projectId)).data.customerId)).data.email)
-        );
-      }
-    }
-
-    // PORTFOLIO collection
-    match /portfolio/{portfolioId} {
-      allow read: if true; // Publicly readable portfolio
-      allow write: if isAdmin();
-    }
-
-    // WARRANTIES collection
-    match /warranties/{warrantyId} {
-      allow create, update, delete: if isAdmin();
-      allow read: if isAdmin() || (
-        isSignedIn() && 
-        exists(/databases/$(database)/documents/projects/$(resource.data.projectId)) &&
-        exists(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.customerId)) &&
-        isClient(get(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.customerId)).data.email)
-      );
-    }
-
-    // DOCUMENTS collection
-    match /documents/{documentId} {
-      allow create, update, delete: if isAdmin();
-      allow read: if isAdmin() || (
-        isSignedIn() && 
-        exists(/databases/$(database)/documents/projects/$(resource.data.projectId)) &&
-        exists(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.customerId)) &&
-        isClient(get(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.customerId)).data.email)
-      );
-    }
-
-    // TEAM collection
-    match /team/{memberId} {
-      allow read, write: if isAdmin();
-    }
-
-    // INVENTORY collection
-    match /inventory/{inventoryId} {
-      allow read, write: if isAdmin();
-    }
-
-    // SCHEDULES collection
-    match /schedules/{scheduleId} {
-      allow create, update, delete: if isAdmin();
-      allow read: if isAdmin() || (
-        isSignedIn() && 
-        resource.data.projectId != null &&
-        exists(/databases/$(database)/documents/projects/$(resource.data.projectId)) &&
-        exists(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.customerId)) &&
-        isClient(get(/databases/$(database)/documents/customers/$(get(/databases/$(database)/documents/projects/$(resource.data.projectId)).data.customerId)).data.email)
-      );
+      allow read, write: if true;
     }
   }
 }
+

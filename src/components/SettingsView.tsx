@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sliders, Shield, Bell, Wrench, RefreshCw, CheckCircle2, AlertOctagon, Sparkles, Building, Key, Lock, Eye, EyeOff, Save, RotateCcw } from "lucide-react";
 import { getOrgDetails, OrgDetails } from "../types";
+import { api } from "../services/api";
 
 export default function SettingsView() {
   const [carpentryRate, setCarpentryRate] = useState(() => Number(localStorage.getItem("nilachal_carpentry_rate")) || 1800); // INR per sqft
@@ -20,25 +21,33 @@ export default function SettingsView() {
   const [showAccountsPasscode, setShowAccountsPasscode] = useState(false);
   const [accountsPasscodeMessage, setAccountsPasscodeMessage] = useState<string | null>(null);
 
-  const handleSaveAccountsPasscode = (e: React.FormEvent) => {
+  useEffect(() => {
+    const unsub = api.subscribeAccountsPasscode((pass) => {
+      setAccountsPasscode(pass);
+    });
+    return () => unsub();
+  }, []);
+
+  const handleSaveAccountsPasscode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accountsPasscode.trim()) return;
-    localStorage.setItem("nilachal_accounts_passcode", accountsPasscode.trim());
-    setAccountsPasscodeMessage("Accounts Office passcode updated successfully!");
+    await api.saveAccountsPasscode(accountsPasscode.trim());
+    setAccountsPasscodeMessage("Accounts Office passcode updated and synced to cloud!");
     setTimeout(() => {
       setAccountsPasscodeMessage(null);
     }, 3000);
   };
 
-  const handleResetAccountsPasscode = () => {
+  const handleResetAccountsPasscode = async () => {
     const defaultPass = "accounts1244";
     setAccountsPasscode(defaultPass);
-    localStorage.setItem("nilachal_accounts_passcode", defaultPass);
-    setAccountsPasscodeMessage("Accounts Office passcode reset to default (accounts1244)!");
+    await api.saveAccountsPasscode(defaultPass);
+    setAccountsPasscodeMessage("Accounts Office passcode reset to default (accounts1244) and synced!");
     setTimeout(() => {
       setAccountsPasscodeMessage(null);
     }, 3000);
   };
+
 
   const handleSync = () => {
     setSyncing(true);

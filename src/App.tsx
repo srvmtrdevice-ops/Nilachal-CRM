@@ -93,51 +93,50 @@ export default function App() {
     onConfirm: () => {},
   });
 
-  // Fetch all initial data from API service
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      const [
-        custData, projData, reqData, portData, warrData, payData, estData, updData, teamData, invData, docData, schData, subPayData
-      ] = await Promise.all([
-        api.getCustomers(),
-        api.getProjects(),
-        api.getCustomerRequirements(),
-        api.getPortfolio(),
-        api.getWarranties(),
-        api.getPayments(),
-        api.getEstimates(),
-        api.getUpdates(),
-        api.getTeam(),
-        api.getInventory(),
-        api.getDocuments(),
-        api.getSchedules(),
-        api.getSubcontractorPayments()
-      ]);
-
-      setCustomers(custData);
-      setProjects(projData);
-      setRequirements(reqData);
-      setPortfolio(portData);
-      setWarranties(warrData);
-      setPayments(payData);
-      setEstimates(estData);
-      setUpdates(updData);
-      setTeam(teamData);
-      setInventory(invData);
-      setDocuments(docData);
-      setSchedules(schData);
-      setSubcontractorPayments(subPayData);
-    } catch (err) {
-      console.error("Error loading turnkey workspace data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAllData();
+    let loadedCount = 0;
+    const totalCollections = 13;
+    const handleLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= totalCollections) {
+        setLoading(false);
+      }
+    };
+
+    const unsubCust = api.subscribeCustomers((data) => { setCustomers(data); handleLoaded(); });
+    const unsubProj = api.subscribeProjects((data) => { setProjects(data); handleLoaded(); });
+    const unsubReq = api.subscribeRequirements((data) => { setRequirements(data); handleLoaded(); });
+    const unsubPort = api.subscribePortfolio((data) => { setPortfolio(data); handleLoaded(); });
+    const unsubWarr = api.subscribeWarranties((data) => { setWarranties(data); handleLoaded(); });
+    const unsubPay = api.subscribePayments((data) => { setPayments(data); handleLoaded(); });
+    const unsubEst = api.subscribeEstimates((data) => { setEstimates(data); handleLoaded(); });
+    const unsubUpd = api.subscribeUpdates((data) => { setUpdates(data); handleLoaded(); });
+    const unsubTeam = api.subscribeTeam((data) => { setTeam(data); handleLoaded(); });
+    const unsubInv = api.subscribeInventory((data) => { setInventory(data); handleLoaded(); });
+    const unsubDoc = api.subscribeDocuments((data) => { setDocuments(data); handleLoaded(); });
+    const unsubSch = api.subscribeSchedules((data) => { setSchedules(data); handleLoaded(); });
+    const unsubSubPay = api.subscribeSubcontractorPayments((data) => { setSubcontractorPayments(data); handleLoaded(); });
+
+    const timeoutTimer = setTimeout(() => setLoading(false), 1500);
+
+    return () => {
+      clearTimeout(timeoutTimer);
+      unsubCust();
+      unsubProj();
+      unsubReq();
+      unsubPort();
+      unsubWarr();
+      unsubPay();
+      unsubEst();
+      unsubUpd();
+      unsubTeam();
+      unsubInv();
+      unsubDoc();
+      unsubSch();
+      unsubSubPay();
+    };
   }, []);
+
 
   // API Call wrappers to maintain real-time state synchronization
   const handleAddCustomer = async (cust: Omit<Customer, "id" | "createdAt" | "updatedAt">) => {

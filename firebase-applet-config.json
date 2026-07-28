@@ -6,5 +6,7 @@
   "firestoreDatabaseId": "ai-studio-nilachalcreative-0e9607f0-521e-492e-b425-5cfc5a655a2d",
   "storageBucket": "augmented-outrider-bxhgq.firebasestorage.app",
   "messagingSenderId": "848259673589",
-  "measurementId": ""
+  "measurementId": "",
+  "oAuthClientId": "848259673589-uooomhk2k7tht47mq5l7h0hmct49eq55.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
 }

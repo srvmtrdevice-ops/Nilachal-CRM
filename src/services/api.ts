@@ -1,6 +1,6 @@
 import { 
-  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, 
-  query, where, orderBy, writeBatch, limit, getDoc, arrayUnion
+  collection, doc, getDocs, addDoc, updateDoc, deleteDoc, setDoc,
+  query, where, orderBy, writeBatch, limit, getDoc, arrayUnion, onSnapshot
 } from "firebase/firestore";
 import { db } from "../firebase";
 import { 
@@ -384,6 +384,53 @@ function saveLocalStorageItem<T>(key: string, data: T[]) {
 
 // API Service exports wrapping database fetch
 export const api = {
+  // Real-time listener subscription helper for multi-device synchronization
+  subscribeToCollection: <T extends { id: string }>(
+    collectionName: string,
+    onData: (data: T[]) => void,
+    defaultSeeding: T[]
+  ) => {
+    const colRef = collection(db, collectionName);
+    return onSnapshot(colRef, async (snap) => {
+      if (snap.empty && defaultSeeding.length > 0) {
+        const localItems = getLocalStorageItem(collectionName, defaultSeeding);
+        const itemsToSeed = localItems.length > 0 ? localItems : defaultSeeding;
+        try {
+          const batch = writeBatch(db);
+          itemsToSeed.forEach((item) => {
+            const itemDocRef = doc(db, collectionName, item.id);
+            batch.set(itemDocRef, item);
+          });
+          await batch.commit();
+        } catch (e) {
+          console.warn(`Seeding ${collectionName} error:`, e);
+        }
+        onData(itemsToSeed);
+      } else {
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as T));
+        saveLocalStorageItem(collectionName, items);
+        onData(items);
+      }
+    }, (err) => {
+      console.warn(`Realtime sub error for ${collectionName}:`, err);
+      onData(getLocalStorageItem(collectionName, defaultSeeding));
+    });
+  },
+
+  subscribeCustomers: (cb: (data: Customer[]) => void) => api.subscribeToCollection("customers", cb, initialCustomers),
+  subscribeProjects: (cb: (data: Project[]) => void) => api.subscribeToCollection("projects", cb, initialProjects),
+  subscribePortfolio: (cb: (data: PortfolioItem[]) => void) => api.subscribeToCollection("portfolio", cb, initialPortfolio),
+  subscribeWarranties: (cb: (data: Warranty[]) => void) => api.subscribeToCollection("warranties", cb, initialWarranties),
+  subscribePayments: (cb: (data: Payment[]) => void) => api.subscribeToCollection("payments", cb, initialPayments),
+  subscribeUpdates: (cb: (data: ProjectUpdate[]) => void) => api.subscribeToCollection("updates", cb, initialUpdates),
+  subscribeTeam: (cb: (data: TeamMember[]) => void) => api.subscribeToCollection("team", cb, initialTeam),
+  subscribeInventory: (cb: (data: InventoryItem[]) => void) => api.subscribeToCollection("inventory", cb, initialInventory),
+  subscribeDocuments: (cb: (data: DocumentRecord[]) => void) => api.subscribeToCollection("documents", cb, []),
+  subscribeRequirements: (cb: (data: CustomerRequirements[]) => void) => api.subscribeToCollection("customer_requirements", cb, initialRequirements),
+  subscribeEstimates: (cb: (data: Estimate[]) => void) => api.subscribeToCollection("estimates", cb, []),
+  subscribeSchedules: (cb: (data: ScheduleItem[]) => void) => api.subscribeToCollection("schedules", cb, initialSchedules),
+  subscribeSubcontractorPayments: (cb: (data: SubcontractorPayment[]) => void) => api.subscribeToCollection("subcontractor_payments", cb, initialSubcontractorPayments),
+
   // 1. CUSTOMERS
   getCustomers: async (): Promise<Customer[]> => {
     try {
@@ -425,6 +472,14 @@ export const api = {
     const local = getLocalStorageItem("customers", initialCustomers);
     const updated = local.map(c => c.id === id ? { ...c, ...updates, updatedAt: timestamp } : c);
     saveLocalStorageItem("customers", updated);
+  },
+  deleteCustomer: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "customers", id));
+    } catch {}
+    const local = getLocalStorageItem("customers", initialCustomers);
+    const filtered = local.filter(c => c.id !== id);
+    saveLocalStorageItem("customers", filtered);
   },
 
   // 2. PROJECTS
@@ -1042,5 +1097,38 @@ export const api = {
     const local = getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
     const filtered = local.filter(p => p.id !== id);
     saveLocalStorageItem("subcontractor_payments", filtered);
+  },
+
+  // 15. APP CONFIG & ACCOUNTS PASSCODE CLOUD SYNC
+  getAccountsPasscode: async (): Promise<string> => {
+    try {
+      const snap = await getDoc(doc(db, "app_config", "general"));
+      if (snap.exists() && snap.data().accountsPasscode) {
+        return snap.data().accountsPasscode;
+      }
+    } catch {}
+    return localStorage.getItem("nilachal_accounts_passcode") || "accounts1244";
+  },
+  saveAccountsPasscode: async (passcode: string): Promise<void> => {
+    localStorage.setItem("nilachal_accounts_passcode", passcode);
+    try {
+      await setDoc(doc(db, "app_config", "general"), { accountsPasscode: passcode }, { merge: true });
+    } catch (e) {
+      console.warn("Error saving accounts passcode to Firestore:", e);
+    }
+  },
+  subscribeAccountsPasscode: (cb: (passcode: string) => void) => {
+    return onSnapshot(doc(db, "app_config", "general"), (snap) => {
+      if (snap.exists() && snap.data().accountsPasscode) {
+        const pass = snap.data().accountsPasscode;
+        localStorage.setItem("nilachal_accounts_passcode", pass);
+        cb(pass);
+      } else {
+        cb(localStorage.getItem("nilachal_accounts_passcode") || "accounts1244");
+      }
+    }, (err) => {
+      cb(localStorage.getItem("nilachal_accounts_passcode") || "accounts1244");
+    });
   }
 };
+
