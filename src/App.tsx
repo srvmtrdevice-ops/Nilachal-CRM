@@ -3,7 +3,7 @@ import {
   LayoutDashboard, Users, Ruler, Calculator, ShieldCheck, 
   CalendarClock, Package, Hammer, FileText, Landmark, UserCheck, Settings,
   Menu, X, Sparkles, Building, Lock, ClipboardCheck, Image, AlertTriangle,
-  FileSpreadsheet
+  FileSpreadsheet, Calendar
 } from "lucide-react";
 
 // Import Views
@@ -11,7 +11,6 @@ import DashboardView from "./components/DashboardView";
 import CustomerView from "./components/CustomerView";
 import ProjectView from "./components/ProjectView";
 import CustomerRequirementsView from "./components/CustomerRequirementsView";
-import CostCalculator from "./components/CostCalculator";
 import WarrantyView from "./components/WarrantyView";
 import DailyUpdatesView from "./components/DailyUpdatesView";
 import InventoryView from "./components/InventoryView";
@@ -22,6 +21,7 @@ import ClientPortalView from "./components/ClientPortalView";
 import SettingsView from "./components/SettingsView";
 import PortfolioView from "./components/PortfolioView";
 import EstimateView from "./components/EstimateView";
+import ScheduleView from "./components/ScheduleView";
 import Logo from "./components/Logo";
 import AdminPasscodeGate from "./components/AdminPasscodeGate";
 
@@ -30,7 +30,7 @@ import { api } from "./services/api";
 import { 
   Customer, Project, PortfolioItem, Warranty, Payment, 
   ProjectUpdate, TeamMember, InventoryItem, DocumentRecord, ScheduleItem,
-  CustomerRequirements, Estimate
+  CustomerRequirements, Estimate, SubcontractorPayment
 } from "./types";
 
 type ActiveTab = 
@@ -38,8 +38,8 @@ type ActiveTab =
   | "customers" 
   | "projects" 
   | "requirements"
-  | "calculator" 
   | "estimates"
+  | "schedules"
   | "updates" 
   | "documents" 
   | "warranties" 
@@ -74,20 +74,8 @@ export default function App() {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([
-    {
-      id: "sch_1",
-      projectId: "proj_1",
-      projectName: "Dr. Alok Mohapatra Site",
-      customerName: "Dr. Alok Mohapatra",
-      title: "Electrical & Modular Layout Verification",
-      date: "2026-07-01",
-      time: "11:30 AM",
-      purpose: "Check water plumbing inlet clearance for modular sink",
-      assignedTo: "Sanjay Swain",
-      status: "Scheduled"
-    }
-  ]);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const [subcontractorPayments, setSubcontractorPayments] = useState<SubcontractorPayment[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [confirmDelete, setConfirmDelete] = useState<{
@@ -108,7 +96,7 @@ export default function App() {
     try {
       setLoading(true);
       const [
-        custData, projData, reqData, portData, warrData, payData, estData, updData, teamData, invData, docData
+        custData, projData, reqData, portData, warrData, payData, estData, updData, teamData, invData, docData, schData, subPayData
       ] = await Promise.all([
         api.getCustomers(),
         api.getProjects(),
@@ -120,7 +108,9 @@ export default function App() {
         api.getUpdates(),
         api.getTeam(),
         api.getInventory(),
-        api.getDocuments()
+        api.getDocuments(),
+        api.getSchedules(),
+        api.getSubcontractorPayments()
       ]);
 
       setCustomers(custData);
@@ -134,6 +124,8 @@ export default function App() {
       setTeam(teamData);
       setInventory(invData);
       setDocuments(docData);
+      setSchedules(schData);
+      setSubcontractorPayments(subPayData);
     } catch (err) {
       console.error("Error loading turnkey workspace data:", err);
     } finally {
@@ -337,14 +329,79 @@ export default function App() {
     });
   };
 
+  // Schedule Handlers
+  const handleAddSchedule = async (sch: Omit<ScheduleItem, "id">) => {
+    const id = await api.addSchedule(sch);
+    setSchedules(prev => [{ id, ...sch }, ...prev]);
+  };
+
+  const handleUpdateSchedule = async (id: string, updates: Partial<ScheduleItem>) => {
+    await api.updateSchedule(id, updates);
+    setSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const handleDeleteSchedule = async (id: string): Promise<void> => {
+    const sch = schedules.find(s => s.id === id);
+    const detailsName = sch ? `${sch.title} (${sch.customerName} - ${sch.date})` : "";
+
+    setConfirmDelete({
+      isOpen: true,
+      title: "Delete Site Schedule",
+      message: "Are you sure you want to delete this site schedule item? This will remove it from the schedule list and calendar.",
+      itemDetails: detailsName,
+      onConfirm: async () => {
+        await api.deleteSchedule(id);
+        setSchedules(prev => prev.filter(s => s.id !== id));
+        setConfirmDelete(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const handleAddTeamMember = async (member: Omit<TeamMember, "id" | "createdAt">) => {
     const id = await api.addTeamMember(member);
     setTeam(prev => [...prev, { id, ...member }]);
   };
 
+  const handleUpdateTeamMember = async (id: string, updates: Partial<TeamMember>) => {
+    await api.updateTeamMember(id, updates);
+    setTeam(prev => prev.map(m => m.id === id ? { ...m, ...updates } : m));
+  };
+
+  const handleDeleteTeamMember = async (id: string): Promise<void> => {
+    const member = team.find(m => m.id === id);
+    const detailsName = member ? `${member.name} (${member.role})` : "";
+
+    setConfirmDelete({
+      isOpen: true,
+      title: "Delete Subcontractor",
+      message: "Are you sure you want to delete this team member / subcontractor? This action cannot be undone.",
+      itemDetails: detailsName,
+      onConfirm: async () => {
+        await api.deleteTeamMember(id);
+        setTeam(prev => prev.filter(m => m.id !== id));
+        setConfirmDelete(prev => ({ ...prev, isOpen: false }));
+      }
+    });
+  };
+
   const handleAddTeamTask = async (memberId: string, task: any) => {
     await api.addTaskToMember(memberId, task);
     setTeam(prev => prev.map(m => m.id === memberId ? { ...m, assignedTasks: [...(m.assignedTasks || []), task] } : m));
+  };
+
+  const handleAddSubcontractorPayment = async (payment: Omit<SubcontractorPayment, "id" | "createdAt">) => {
+    const id = await api.addSubcontractorPayment(payment);
+    const newEntry: SubcontractorPayment = {
+      id,
+      ...payment,
+      createdAt: new Date().toISOString()
+    };
+    setSubcontractorPayments(prev => [newEntry, ...prev]);
+  };
+
+  const handleDeleteSubcontractorPayment = async (id: string): Promise<void> => {
+    await api.deleteSubcontractorPayment(id);
+    setSubcontractorPayments(prev => prev.filter(p => p.id !== id));
   };
 
   const handleToggleAttendance = async (memberId: string, date: string) => {
@@ -412,8 +469,8 @@ export default function App() {
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
     { id: "customers", label: "Customers", icon: Users },
     { id: "projects", label: "Project Briefs", icon: Ruler },
-    { id: "calculator", label: "Cost Estimator", icon: Calculator },
     { id: "estimates", label: "Generate Estimate", icon: FileSpreadsheet },
+    { id: "schedules", label: "Site Schedules", icon: Calendar },
     { id: "updates", label: "Daily Logs", icon: CalendarClock },
     { id: "documents", label: "Documents", icon: FileText },
     { id: "warranties", label: "Warranties", icon: ShieldCheck },
@@ -625,10 +682,6 @@ export default function App() {
                 />
               )}
 
-              {activeTab === "calculator" && (
-                <CostCalculator />
-              )}
-
               {activeTab === "estimates" && (
                 <EstimateView 
                   estimates={estimates}
@@ -636,6 +689,18 @@ export default function App() {
                   onAdd={handleAddEstimate}
                   onUpdate={handleUpdateEstimate}
                   onDelete={handleDeleteEstimate}
+                />
+              )}
+
+              {activeTab === "schedules" && (
+                <ScheduleView 
+                  schedules={schedules}
+                  projects={projects}
+                  customers={customers}
+                  team={team}
+                  onAdd={handleAddSchedule}
+                  onUpdate={handleUpdateSchedule}
+                  onDelete={handleDeleteSchedule}
                 />
               )}
 
@@ -679,9 +744,14 @@ export default function App() {
                 <TeamView 
                   team={team}
                   projects={projects}
+                  subcontractorPayments={subcontractorPayments}
                   onAdd={handleAddTeamMember}
+                  onUpdate={handleUpdateTeamMember}
+                  onDelete={handleDeleteTeamMember}
                   onAddTask={handleAddTeamTask}
                   onToggleAttendance={handleToggleAttendance}
+                  onAddPayment={handleAddSubcontractorPayment}
+                  onDeletePayment={handleDeleteSubcontractorPayment}
                 />
               )}
 

@@ -137,7 +137,7 @@ export default function DashboardView({
 
         {/* Card 3: Upcoming Site Visits */}
         <div 
-          onClick={() => onNavigate("calendar")}
+          onClick={() => onNavigate("schedules")}
           className="cursor-pointer bg-stone-900 hover:bg-stone-900/80 border border-stone-800/80 p-5 rounded-xl transition duration-200 flex items-center gap-4 group col-span-1 md:col-span-2 lg:col-span-1"
         >
           <div className="p-3 rounded-lg bg-stone-800 text-blue-400 group-hover:bg-blue-400/10 transition-colors">
@@ -248,7 +248,7 @@ export default function DashboardView({
                 <Clock className="w-4 h-4 text-amber-500" /> Pending Site Schedules
               </h3>
               <button 
-                onClick={() => onNavigate("calendar")}
+                onClick={() => onNavigate("schedules")}
                 className="text-amber-500 hover:text-amber-400 text-xs font-semibold flex items-center gap-0.5 transition"
               >
                 Calendar <ChevronRight className="w-3.5 h-3.5" />

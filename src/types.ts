@@ -192,6 +192,20 @@ export interface TeamTask {
   status: "Pending" | "In Progress" | "Completed";
 }
 
+export interface SubcontractorPayment {
+  id: string;
+  memberId: string;
+  memberName: string;
+  date: string;
+  amount: number;
+  paymentType: "Advance" | "Progress Payment" | "Final Settlement" | "Daily Wages" | "Material Reimbursement";
+  projectName?: string;
+  paymentMode: "Cash" | "Bank Transfer" | "UPI" | "Cheque";
+  referenceNo?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface TeamMember {
   id: string;
   name: string;

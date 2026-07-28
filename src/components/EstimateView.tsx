@@ -2,9 +2,13 @@ import React, { useState, useEffect } from "react";
 import { 
   Plus, Trash2, Edit, Printer, Share2, FileText, CheckCircle, 
   X, Sparkles, Calculator, User, Phone, Mail, MapPin, 
-  ChevronRight, Calendar, Info, RefreshCw
+  ChevronRight, Calendar, Info, RefreshCw, Download
 } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { Estimate, EstimateItem, Customer, getOrgDetails } from "../types";
+import Logo from "./Logo";
+import { drawPdfLogo } from "../utils/logoUtils";
 
 interface EstimateViewProps {
   estimates: Estimate[];
@@ -222,6 +226,124 @@ export default function EstimateView({
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleDownloadPDF = (est: Estimate) => {
+    const doc = new jsPDF();
+
+    // Dark Header Banner
+    doc.setFillColor(28, 25, 23); // #1c1917
+    doc.rect(0, 0, 210, 38, "F");
+
+    // Render Brand Vector Logo
+    drawPdfLogo(doc, 12, 7, 24);
+
+    // Company Name & Info
+    doc.setTextColor(245, 189, 31); // Amber
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text(orgDetails.name.toUpperCase(), 40, 15);
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.text("Turnkey Interiors & Modular Carpentry Execution", 40, 22);
+    doc.text(`${orgDetails.address} • Ph: ${orgDetails.phone} • Email: ${orgDetails.email}`, 40, 28);
+
+    // Sub-banner title
+    doc.setFillColor(245, 158, 11); // Amber accent
+    doc.rect(0, 38, 210, 10, "F");
+    doc.setTextColor(28, 25, 23);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("BESPOKE DESIGN ESTIMATE & PROJECT QUOTATION", 14, 44.5);
+
+    // Customer & Estimate Metadata
+    doc.setTextColor(28, 25, 23);
+    doc.setFontSize(9.5);
+    doc.setFont("helvetica", "bold");
+    doc.text(`Customer Name: ${est.customerName}`, 14, 56);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Contact Phone: ${est.customerPhone || "N/A"}`, 14, 62);
+    doc.text(`Email Address: ${est.customerEmail || "N/A"}`, 14, 68);
+
+    doc.setFont("helvetica", "bold");
+    doc.text(`Estimate Reference: ${est.estimateNumber}`, 120, 56);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Proposal Date: ${est.date}`, 120, 62);
+    doc.text(`Valid Until: ${est.expiryDate || "N/A"}`, 120, 68);
+
+    doc.setDrawColor(229, 231, 235);
+    doc.line(14, 73, 196, 73);
+
+    // Table Columns & Rows
+    const tableColumn = ["#", "Room / Zone", "Description & Specifications", "Qty", "Rate (INR)", "Amount (INR)"];
+    const tableRows = est.items.map((item, idx) => [
+      idx + 1,
+      item.room || "General",
+      item.description,
+      item.quantity,
+      `Rs. ${item.rate.toLocaleString("en-IN")}`,
+      `Rs. ${item.amount.toLocaleString("en-IN")}`
+    ]);
+
+    autoTable(doc, {
+      startY: 76,
+      head: [tableColumn],
+      body: tableRows,
+      theme: "striped",
+      headStyles: {
+        fillColor: [245, 158, 11],
+        textColor: [28, 25, 23],
+        fontStyle: "bold",
+        fontSize: 9
+      },
+      bodyStyles: { fontSize: 8.5, textColor: [30, 41, 59] },
+      alternateRowStyles: { fillColor: [248, 250, 252] }
+    });
+
+    const finalY = (doc as any).lastAutoTable?.finalY || 140;
+
+    // Financial Breakdown Box
+    doc.setFillColor(254, 243, 199); // Soft amber tint
+    doc.setDrawColor(245, 158, 11);
+    doc.roundedRect(120, finalY + 6, 76, 32, 2, 2, "FD");
+
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(28, 25, 23);
+    doc.text(`Subtotal:`, 124, finalY + 13);
+    doc.text(`Rs. ${est.subtotal.toLocaleString("en-IN")}`, 190, finalY + 13, { align: "right" });
+
+    doc.text(`GST (${est.gstRate}%):`, 124, finalY + 19);
+    doc.text(`Rs. ${est.gstAmount.toLocaleString("en-IN")}`, 190, finalY + 19, { align: "right" });
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.text(`Grand Total:`, 124, finalY + 28);
+    doc.text(`Rs. ${est.grandTotal.toLocaleString("en-IN")}`, 190, finalY + 28, { align: "right" });
+
+    // Terms & Notes Box
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(100, 116, 139);
+    doc.text("Notes & Payment Terms:", 14, finalY + 12);
+    doc.setFont("helvetica", "normal");
+    doc.text(est.notes || "50% advance on approval, 40% on material arrival at site, 10% on completion.", 14, finalY + 18, { maxWidth: 100 });
+
+    // Signatures
+    doc.setFontSize(8.5);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(28, 25, 23);
+    doc.text("For Nilachal Creatives", 14, finalY + 45);
+    doc.text("Customer Acceptance", 130, finalY + 45);
+
+    doc.setDrawColor(203, 213, 225);
+    doc.line(14, finalY + 40, 75, finalY + 40);
+    doc.line(130, finalY + 40, 190, finalY + 40);
+
+    const fileName = `Estimate_${est.estimateNumber.replace(/\s+/g, "_")}_Nilachal.pdf`;
+    doc.save(fileName);
   };
 
   const formatCurrency = (num: number) => {
@@ -729,21 +851,28 @@ export default function EstimateView({
                     <div className="flex gap-2 pt-2 border-t border-stone-850/50">
                       <button
                         onClick={() => handleEditEstimate(est)}
-                        className="flex-1 py-1.5 bg-stone-850 hover:bg-stone-800 text-stone-300 text-[10px] font-bold uppercase tracking-wider rounded-lg transition border border-stone-800 font-mono flex items-center justify-center gap-1 cursor-pointer"
+                        className="py-1.5 px-2 bg-stone-850 hover:bg-stone-800 text-stone-300 text-[10px] font-bold uppercase tracking-wider rounded-lg transition border border-stone-800 font-mono flex items-center justify-center gap-1 cursor-pointer"
                         title="Edit Proposal details"
                       >
                         <Edit className="w-3 h-3" /> Edit
                       </button>
                       <button
-                        onClick={() => setPreviewEstimate(est)}
-                        className="flex-1 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-bold uppercase tracking-wider rounded-lg transition font-mono flex items-center justify-center gap-1 cursor-pointer"
-                        title="Share Proposal as PDF / Print preview"
+                        onClick={() => handleDownloadPDF(est)}
+                        className="flex-1 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold uppercase tracking-wider rounded-lg transition font-mono flex items-center justify-center gap-1 cursor-pointer"
+                        title="Download Estimate PDF directly"
                       >
-                        <Printer className="w-3 h-3" /> Share PDF
+                        <Download className="w-3 h-3" /> Download PDF
+                      </button>
+                      <button
+                        onClick={() => setPreviewEstimate(est)}
+                        className="py-1.5 px-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-[10px] font-bold uppercase tracking-wider rounded-lg transition font-mono flex items-center justify-center gap-1 cursor-pointer"
+                        title="Preview & Print Proposal"
+                      >
+                        <Printer className="w-3 h-3" /> Preview
                       </button>
                       <button
                         onClick={() => onDelete(est.id)}
-                        className="p-1.5 text-stone-500 hover:text-red-400 hover:bg-red-950/20 rounded-lg transition"
+                        className="p-1.5 text-stone-500 hover:text-red-400 hover:bg-red-950/20 rounded-lg transition cursor-pointer"
                         title="Delete estimate"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -769,18 +898,27 @@ export default function EstimateView({
                 <Printer className="w-4 h-4 text-amber-500" />
                 <span className="text-xs font-serif font-bold text-stone-200">Luxury Client Proposal Print Stage</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
+                <button
+                  type="button"
+                  onClick={() => handleDownloadPDF(previewEstimate)}
+                  className="px-3.5 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-stone-950 text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/10"
+                  title="Download Estimate PDF file"
+                >
+                  <Download className="w-3.5 h-3.5" /> Download PDF
+                </button>
                 <button
                   type="button"
                   onClick={handlePrint}
-                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10"
+                  className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-lg shadow-amber-500/10"
+                  title="Print / Save via browser"
                 >
-                  <Printer className="w-3.5 h-3.5" /> Print / Save as PDF
+                  <Printer className="w-3.5 h-3.5" /> Print / Save
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewEstimate(null)}
-                  className="p-1.5 text-stone-400 hover:text-white rounded-lg hover:bg-stone-800 transition"
+                  className="p-1.5 text-stone-400 hover:text-white rounded-lg hover:bg-stone-800 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -793,20 +931,17 @@ export default function EstimateView({
               <div className="space-y-8">
                 {/* PDF Header with Brand Logo */}
                 <div className="flex justify-between items-start border-b-2 border-stone-800 pb-6">
-                  <div>
-                    {/* Visual Brand Emblem */}
-                    <div className="flex items-center gap-2.5 mb-1.5">
-                      <div className="w-8 h-8 rounded-lg bg-stone-900 flex items-center justify-center text-white font-serif font-bold italic text-base border border-amber-500/40">
-                        N
-                      </div>
-                      <h1 className="text-xl font-serif font-black tracking-widest text-stone-900 uppercase">
+                  <div className="flex items-center gap-4">
+                    <Logo size="xl" className="shrink-0" />
+                    <div>
+                      <h1 className="text-xl md:text-2xl font-serif font-black tracking-wider text-stone-900 uppercase">
                         {orgDetails.name}
                       </h1>
+                      <p className="text-[10px] text-stone-500 font-mono tracking-wider uppercase mt-0.5">Bespoke Architectural Interiors & Modular Layouts</p>
+                      <p className="text-[10px] text-stone-500 leading-relaxed max-w-xs mt-1">
+                        {orgDetails.address} • {orgDetails.hq}
+                      </p>
                     </div>
-                    <p className="text-[10px] text-stone-500 font-mono tracking-wider uppercase">Bespoke Architectural Interiors & Modular Layouts</p>
-                    <p className="text-[10px] text-stone-500 leading-relaxed max-w-xs mt-1">
-                      {orgDetails.address} • {orgDetails.hq}
-                    </p>
                   </div>
 
                   <div className="text-right space-y-1">

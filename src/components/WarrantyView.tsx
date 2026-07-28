@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Plus, ShieldCheck, ShieldAlert, Calendar, User, Hammer, X, Wrench, FileCheck } from "lucide-react";
-import { Warranty, Project, WarrantyServiceRecord } from "../types";
+import { Plus, ShieldCheck, ShieldAlert, Calendar, User, Hammer, X, Wrench, FileCheck, Printer, Download } from "lucide-react";
+import { Warranty, Project, WarrantyServiceRecord, getOrgDetails } from "../types";
+import Logo from "./Logo";
 
 interface WarrantyViewProps {
   warranties: Warranty[];
@@ -10,9 +11,11 @@ interface WarrantyViewProps {
 }
 
 export default function WarrantyView({ warranties, projects, onAdd, onAddService }: WarrantyViewProps) {
+  const org = getOrgDetails();
   const [modalOpen, setModalOpen] = useState(false);
   const [serviceModalOpen, setServiceModalOpen] = useState(false);
   const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(null);
+  const [certWarranty, setCertWarranty] = useState<Warranty | null>(null);
 
   // Form states - Warranty
   const [projectId, setProjectId] = useState("");
@@ -213,14 +216,21 @@ export default function WarrantyView({ warranties, projects, onAdd, onAddService
 
                 {/* Footer Buttons / Certificate Download */}
                 <div className="bg-stone-950/60 px-5 py-3 border-t border-stone-800 flex justify-between items-center text-xs">
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCertWarranty(warr)}
+                      className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
+                      title="View / Print Official Warranty Certificate"
+                    >
+                      <Printer className="w-3 h-3" /> Certificate
+                    </button>
                     {warr.warrantyCardUrl && (
                       <span className="text-[10px] text-stone-400 flex items-center gap-1 select-none">
                         <FileCheck className="w-3.5 h-3.5 text-stone-500" /> Card Uploaded
                       </span>
                     )}
                   </div>
-                  <span className="text-[10px] text-stone-500">Coverage: {warr.startDate} to {warr.endDate}</span>
+                  <span className="text-[10px] text-stone-500 font-mono">Coverage: {warr.startDate} to {warr.endDate}</span>
                 </div>
               </div>
             );
@@ -384,6 +394,119 @@ export default function WarrantyView({ warranties, projects, onAdd, onAddService
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* PRINTABLE WARRANTY CERTIFICATE MODAL */}
+      {certWarranty && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 print:p-0 print:bg-white overflow-y-auto">
+          <div className="bg-white text-stone-900 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none animate-in fade-in zoom-in-95 duration-200 my-8 print:my-0">
+            {/* Modal Control Bar (Hidden on Print) */}
+            <div className="bg-stone-900 text-white px-6 py-3.5 flex justify-between items-center print:hidden border-b border-stone-800">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-500" />
+                <span className="font-serif font-bold text-sm">Official Warranty Certificate Preview</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print / Save PDF
+                </button>
+                <button
+                  onClick={() => setCertWarranty(null)}
+                  className="p-1 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-800 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Certificate Body Canvas */}
+            <div className="p-8 md:p-12 space-y-8 bg-amber-50/20 border-8 border-double border-amber-500/30 m-4 rounded-xl print:m-0 print:border-8 print:border-double print:border-amber-600">
+              {/* Header with Brand Logo */}
+              <div className="flex justify-between items-center border-b-2 border-stone-800 pb-6">
+                <div className="flex items-center gap-4">
+                  <Logo size="xl" className="shrink-0" />
+                  <div>
+                    <h1 className="text-2xl font-serif font-black tracking-wider text-stone-900 uppercase">{org.name}</h1>
+                    <p className="text-xs text-stone-600 font-medium">Architectural Turnkey Interiors & Hardware Systems</p>
+                    <p className="text-[10px] text-stone-500 font-mono mt-0.5">{org.address} • Ph: {org.phone}</p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-800 bg-amber-100 border border-amber-300 px-3 py-1 rounded-full">
+                    Official Guarantee
+                  </span>
+                  <div className="text-xs font-mono font-bold text-stone-700 mt-2">CERT REF: <span className="text-stone-900">NIL-WARR-{certWarranty.id.slice(0,6).toUpperCase()}</span></div>
+                </div>
+              </div>
+
+              {/* Certificate Title Banner */}
+              <div className="text-center space-y-2 py-4">
+                <h2 className="text-3xl font-serif font-black text-stone-900 tracking-tight uppercase">
+                  CERTIFICATE OF WARRANTY
+                </h2>
+                <p className="text-xs text-stone-600 italic max-w-xl mx-auto">
+                  This document certifies that the hardware installation and turnkey woodwork specified below is backed by Nilachal Creatives Quality Assurance.
+                </p>
+              </div>
+
+              {/* Product & Site Details */}
+              <div className="grid grid-cols-2 gap-6 bg-white p-6 border border-amber-200 rounded-xl shadow-sm">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block">Product / Hardware Installed</span>
+                  <span className="text-base font-serif font-bold text-stone-900 block mt-0.5">{certWarranty.productInstalled}</span>
+                  <span className="text-xs text-amber-700 font-mono font-semibold block mt-1">Brand: {certWarranty.brand || "Nilachal Prime Series"}</span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block">Installation Site / Project</span>
+                  <span className="text-base font-serif font-bold text-stone-900 block mt-0.5">{certWarranty.projectName}</span>
+                  <span className="text-xs text-stone-600 block mt-1">Coverage Status: <strong className="text-emerald-700">ACTIVE</strong></span>
+                </div>
+              </div>
+
+              {/* Validity Dates */}
+              <div className="grid grid-cols-2 gap-4 bg-amber-100/50 p-4 border border-amber-300/60 rounded-xl text-center">
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase text-stone-500 block">Warranty Effective From</span>
+                  <span className="text-sm font-mono font-extrabold text-stone-900 block mt-0.5">{certWarranty.startDate}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase text-stone-500 block">Warranty Expiry Date</span>
+                  <span className="text-sm font-mono font-extrabold text-amber-900 block mt-0.5">{certWarranty.endDate}</span>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <div className="text-[11px] text-stone-600 space-y-1.5 leading-relaxed bg-white p-4 rounded-xl border border-stone-200">
+                <strong className="text-stone-900 block font-serif">Coverage Terms & Guarantee Scope:</strong>
+                <p>• Covers hydraulic mechanism failures, alignment sagging, soft-close runner defects, and manufacturing flaws.</p>
+                <p>• Free onsite repair or component replacement by authorized Nilachal Creatives technicians during the warranty tenure.</p>
+              </div>
+
+              {/* Signature & Seal Row */}
+              <div className="pt-8 flex justify-between items-end">
+                <div className="text-center">
+                  <div className="w-16 h-16 rounded-full bg-amber-500/10 border-2 border-amber-500 text-amber-700 font-serif font-black text-xs flex items-center justify-center mx-auto mb-2">
+                    NILACHAL<br/>SEAL
+                  </div>
+                  <span className="text-[9px] font-mono uppercase font-bold text-stone-500">Quality Assured</span>
+                </div>
+
+                <div className="text-center space-y-1">
+                  <div className="border-b border-stone-400 w-48 pb-1 text-xs font-serif italic text-stone-800">
+                    Sanjay Swain / Authorized Signatory
+                  </div>
+                  <span className="text-[10px] font-bold text-stone-900 block uppercase">Nilachal Creatives</span>
+                  <span className="text-[9px] text-stone-500 font-mono block">Bhubaneswar, Odisha</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

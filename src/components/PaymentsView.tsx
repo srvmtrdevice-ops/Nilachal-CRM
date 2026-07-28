@@ -368,11 +368,11 @@ export default function PaymentsView({ payments, projects, onAdd, onMarkPaid, on
               {/* Invoice Header */}
               <div className="flex justify-between items-start border-b border-stone-200 pb-6">
                 <div className="flex items-center gap-4">
-                  <Logo size="lg" className="shrink-0" />
+                  <Logo size="xl" className="shrink-0" />
                   <div>
                     <h1 className="text-2xl font-serif font-black tracking-tight text-stone-900 leading-none uppercase">{orgDetails.name}</h1>
                     <p className="text-xs text-stone-500 mt-1">High-End Modular Carpentry & Site Interiors</p>
-                    <p className="text-[10px] text-stone-400 mt-0.5">{orgDetails.address}</p>
+                    <p className="text-[10px] text-stone-400 mt-0.5">{orgDetails.address} • {orgDetails.phone}</p>
                   </div>
                 </div>
                 <div className="text-right">

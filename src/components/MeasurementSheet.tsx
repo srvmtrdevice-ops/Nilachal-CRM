@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Save, Ruler, CheckCircle } from "lucide-react";
-import { MeasurementRow } from "../types";
+import { Plus, Trash2, Save, Ruler, CheckCircle, Printer, X } from "lucide-react";
+import { MeasurementRow, getOrgDetails } from "../types";
+import Logo from "./Logo";
 
 interface MeasurementSheetProps {
   initialMeasurements?: MeasurementRow[];
@@ -8,6 +9,8 @@ interface MeasurementSheetProps {
 }
 
 export default function MeasurementSheet({ initialMeasurements, onSave }: MeasurementSheetProps) {
+  const org = getOrgDetails();
+  const [printOpen, setPrintOpen] = useState(false);
   const defaultRow = (): MeasurementRow => ({
     room: "Living Room",
     quantity: 1,
@@ -71,8 +74,15 @@ export default function MeasurementSheet({ initialMeasurements, onSave }: Measur
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setPrintOpen(true)}
+            className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Print / Export Measurement Sheet as PDF"
+          >
+            <Printer className="w-3.5 h-3.5 text-amber-500" /> Print Sheet
+          </button>
+          <button
             onClick={handleAddRow}
-            className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-stone-200 hover:text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" /> Add Space
           </button>
@@ -175,6 +185,99 @@ export default function MeasurementSheet({ initialMeasurements, onSave }: Measur
           </span>
         </div>
       </div>
+
+      {/* PRINTABLE MEASUREMENT SHEET MODAL */}
+      {printOpen && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 print:p-0 print:bg-white overflow-y-auto">
+          <div className="bg-white text-stone-900 rounded-2xl w-full max-w-3xl shadow-2xl overflow-hidden print:shadow-none print:rounded-none animate-in fade-in zoom-in-95 duration-200 my-8 print:my-0">
+            {/* Control Bar */}
+            <div className="bg-stone-900 text-white px-6 py-3.5 flex justify-between items-center print:hidden border-b border-stone-800">
+              <div className="flex items-center gap-2">
+                <Ruler className="w-5 h-5 text-amber-500" />
+                <span className="font-serif font-bold text-sm">Site Measurement Sheet Preview</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => window.print()}
+                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold rounded-lg text-xs flex items-center gap-1.5 transition cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print / Save PDF
+                </button>
+                <button
+                  onClick={() => setPrintOpen(false)}
+                  className="p-1 text-stone-400 hover:text-stone-200 rounded-lg hover:bg-stone-800 transition cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Printable Document Canvas */}
+            <div className="p-8 md:p-12 space-y-6 bg-white">
+              {/* Header with Logo */}
+              <div className="flex justify-between items-start border-b-2 border-stone-800 pb-6">
+                <div className="flex items-center gap-4">
+                  <Logo size="xl" className="shrink-0" />
+                  <div>
+                    <h1 className="text-2xl font-serif font-black uppercase text-stone-900">{org.name}</h1>
+                    <p className="text-xs text-stone-600 font-medium">Bespoke Architectural Interiors & Site Surveying</p>
+                    <p className="text-[10px] text-stone-500 font-mono mt-0.5">{org.address} • Ph: {org.phone}</p>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <h2 className="text-xl font-serif font-black uppercase tracking-tight text-stone-900">SITE MEASUREMENT SHEET</h2>
+                  <p className="text-xs font-mono font-bold text-stone-600 mt-1">DATE: {new Date().toLocaleDateString('en-IN')}</p>
+                </div>
+              </div>
+
+              {/* Table of Measurements */}
+              <div className="border border-stone-300 rounded-lg overflow-hidden">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="bg-stone-100 text-stone-800 font-bold uppercase tracking-wider border-b border-stone-300">
+                      <th className="py-2.5 px-3">#</th>
+                      <th className="py-2.5 px-4">Room / Space Zone</th>
+                      <th className="py-2.5 px-3 text-center">Qty</th>
+                      <th className="py-2.5 px-3 text-right">Area (sq. ft)</th>
+                      <th className="py-2.5 px-4">Wall Details / Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200 text-stone-800 font-sans">
+                    {rows.map((r, idx) => (
+                      <tr key={idx} className={idx % 2 === 0 ? "bg-white" : "bg-stone-50"}>
+                        <td className="py-2.5 px-3 font-mono text-stone-500">{idx + 1}</td>
+                        <td className="py-2.5 px-4 font-bold text-stone-900">{r.room}</td>
+                        <td className="py-2.5 px-3 text-center font-mono">{r.quantity}</td>
+                        <td className="py-2.5 px-3 text-right font-mono font-bold text-stone-900">{r.area.toFixed(1)}</td>
+                        <td className="py-2.5 px-4 text-stone-600">{r.remarks || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Summary Bar */}
+              <div className="flex justify-between items-center bg-stone-100 p-4 rounded-xl border border-stone-300 font-bold text-stone-900">
+                <span className="text-xs font-mono uppercase">Total Cumulative Carpet Area</span>
+                <span className="text-lg font-serif font-black font-mono text-amber-800">
+                  {calculateTotalArea().toFixed(1)} sq. ft.
+                </span>
+              </div>
+
+              {/* Signature Row */}
+              <div className="pt-12 flex justify-between items-end text-xs text-stone-700">
+                <div>
+                  <div className="border-b border-stone-400 w-40 pb-1 italic">Site Engineer Signature</div>
+                </div>
+                <div className="text-right">
+                  <div className="border-b border-stone-400 w-48 pb-1 italic">Customer Acknowledgment</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

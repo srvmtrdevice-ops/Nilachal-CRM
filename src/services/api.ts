@@ -6,7 +6,7 @@ import { db } from "../firebase";
 import { 
   Customer, Project, PortfolioItem, Warranty, Payment, 
   ProjectUpdate, TeamMember, InventoryItem, DocumentRecord,
-  CustomerRequirements, Estimate
+  CustomerRequirements, Estimate, ScheduleItem, SubcontractorPayment
 } from "../types";
 
 // Dynamic Fallback Storage Wrapper
@@ -294,6 +294,75 @@ const initialRequirements: CustomerRequirements[] = [
       { label: "Living Entry Shoe Storage console", value: "Slim design wall-mounted entry console box." }
     ],
     updatedAt: "2026-06-27T10:35:00Z"
+  }
+];
+
+const initialSchedules: ScheduleItem[] = [
+  {
+    id: "sch_1",
+    projectId: "proj_1",
+    projectName: "Dr. Alok Mohapatra Site",
+    customerName: "Dr. Alok Mohapatra",
+    title: "Electrical & Modular Layout Verification",
+    date: "2026-07-28",
+    time: "11:30 AM",
+    purpose: "Check water plumbing inlet clearance for modular sink",
+    assignedTo: "Sanjay Swain",
+    status: "Scheduled"
+  },
+  {
+    id: "sch_2",
+    projectId: "proj_1",
+    projectName: "Sarmistha Dash Residence",
+    customerName: "Sarmistha Dash",
+    title: "Initial Site Measurement & Ceiling Inspection",
+    date: "2026-07-30",
+    time: "03:00 PM",
+    purpose: "Measure false ceiling drop and beam locations",
+    assignedTo: "Pradip Jena",
+    status: "Scheduled"
+  }
+];
+
+const initialSubcontractorPayments: SubcontractorPayment[] = [
+  {
+    id: "sp_1",
+    memberId: "team_1",
+    memberName: "Sanjay Swain",
+    date: "2026-07-05",
+    amount: 15000,
+    paymentType: "Advance",
+    projectName: "Dr. Alok Mohapatra Site",
+    paymentMode: "UPI",
+    referenceNo: "UPI/38291047291",
+    notes: "Advance for modular kitchen carcass fabrication",
+    createdAt: "2026-07-05T10:00:00Z"
+  },
+  {
+    id: "sp_2",
+    memberId: "team_1",
+    memberName: "Sanjay Swain",
+    date: "2026-07-20",
+    amount: 25000,
+    paymentType: "Progress Payment",
+    projectName: "Dr. Alok Mohapatra Site",
+    paymentMode: "Bank Transfer",
+    referenceNo: "NEFT-3829108",
+    notes: "Completion of wardrobe panelling phase 1",
+    createdAt: "2026-07-20T14:30:00Z"
+  },
+  {
+    id: "sp_3",
+    memberId: "team_2",
+    memberName: "Pradip Jena",
+    date: "2026-07-10",
+    amount: 10000,
+    paymentType: "Advance",
+    projectName: "Sarmistha Dash Residence",
+    paymentMode: "Cash",
+    referenceNo: "CASH-REC-102",
+    notes: "Advance for false ceiling channel installation",
+    createdAt: "2026-07-10T11:00:00Z"
   }
 ];
 
@@ -667,6 +736,24 @@ export const api = {
     } catch {}
   },
 
+  updateTeamMember: async (id: string, member: Partial<TeamMember>): Promise<void> => {
+    const local = getLocalStorageItem("team", initialTeam);
+    const updated = local.map(m => m.id === id ? { ...m, ...member } : m);
+    saveLocalStorageItem("team", updated);
+
+    try {
+      await updateDoc(doc(db, "team", id), member);
+    } catch {}
+  },
+  deleteTeamMember: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "team", id));
+    } catch {}
+    const local = getLocalStorageItem("team", initialTeam);
+    const filtered = local.filter(m => m.id !== id);
+    saveLocalStorageItem("team", filtered);
+  },
+
   // 8. MATERIALS INVENTORY
   getInventory: async (): Promise<InventoryItem[]> => {
     try {
@@ -867,5 +954,93 @@ export const api = {
     const local = getLocalStorageItem("estimates", [] as Estimate[]);
     const filtered = local.filter(e => e.id !== id);
     saveLocalStorageItem("estimates", filtered);
+  },
+
+  // 13. SITE SCHEDULES
+  getSchedules: async (): Promise<ScheduleItem[]> => {
+    try {
+      const q = query(collection(db, "schedules"), orderBy("date", "asc"));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        return getLocalStorageItem("schedules", initialSchedules);
+      }
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as ScheduleItem));
+      saveLocalStorageItem("schedules", list);
+      return list;
+    } catch {
+      return getLocalStorageItem("schedules", initialSchedules);
+    }
+  },
+  addSchedule: async (sch: Omit<ScheduleItem, "id">): Promise<string> => {
+    const id = `sch_${Date.now()}`;
+    const payload = { ...sch };
+    const local = getLocalStorageItem("schedules", initialSchedules);
+    local.unshift({ id, ...payload });
+    saveLocalStorageItem("schedules", local);
+
+    try {
+      const docRef = await addDoc(collection(db, "schedules"), payload);
+      return docRef.id;
+    } catch {
+      return id;
+    }
+  },
+  updateSchedule: async (id: string, sch: Partial<ScheduleItem>): Promise<void> => {
+    const local = getLocalStorageItem("schedules", initialSchedules);
+    const updated = local.map(s => s.id === id ? { ...s, ...sch } : s);
+    saveLocalStorageItem("schedules", updated);
+
+    try {
+      await updateDoc(doc(db, "schedules", id), sch);
+    } catch {}
+  },
+  deleteSchedule: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "schedules", id));
+    } catch {}
+    const local = getLocalStorageItem("schedules", initialSchedules);
+    const filtered = local.filter(s => s.id !== id);
+    saveLocalStorageItem("schedules", filtered);
+  },
+
+  // 14. SUBCONTRACTOR PAYMENTS & LEDGER
+  getSubcontractorPayments: async (): Promise<SubcontractorPayment[]> => {
+    try {
+      const q = query(collection(db, "subcontractor_payments"), orderBy("date", "desc"));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        return getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
+      }
+      const list = snap.docs.map(d => ({ id: d.id, ...d.data() } as SubcontractorPayment));
+      saveLocalStorageItem("subcontractor_payments", list);
+      return list;
+    } catch {
+      return getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
+    }
+  },
+  addSubcontractorPayment: async (payment: Omit<SubcontractorPayment, "id" | "createdAt">): Promise<string> => {
+    const id = `sp_${Date.now()}`;
+    const payload = { 
+      ...payment, 
+      createdAt: new Date().toISOString() 
+    };
+    const local = getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
+    local.unshift({ id, ...payload });
+    saveLocalStorageItem("subcontractor_payments", local);
+
+    try {
+      const docRef = await addDoc(collection(db, "subcontractor_payments"), payload);
+      return docRef.id;
+    } catch {
+      return id;
+    }
+  },
+  deleteSubcontractorPayment: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "subcontractor_payments", id));
+    } catch {}
+    const local = getLocalStorageItem("subcontractor_payments", initialSubcontractorPayments);
+    const filtered = local.filter(p => p.id !== id);
+    saveLocalStorageItem("subcontractor_payments", filtered);
   }
 };
