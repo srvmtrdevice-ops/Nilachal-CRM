@@ -192,6 +192,55 @@ export interface TeamTask {
   status: "Pending" | "In Progress" | "Completed";
 }
 
+export interface ContractorProjectContract {
+  id: string;
+  projectId: string;
+  projectName: string;
+  contractAmount: number;
+  scopeOfWork?: string;
+  startDate?: string;
+  targetCompletionDate?: string;
+}
+
+export interface ContractorPayment {
+  id: string;
+  contractorId: string;
+  contractorName: string;
+  projectId?: string;
+  projectName?: string;
+  amount: number;
+  date: string;
+  paymentCategory: "Advance" | "Progress Payment" | "Final Settlement" | "Material Reimbursement" | "Retention Release" | "Other";
+  paymentMode: "Cash" | "Bank Transfer" | "UPI" | "Cheque";
+  status?: "Paid" | "Pending" | "Partial";
+  referenceNo?: string;
+  notes?: string;
+  receiptUrl?: string;
+  createdAt: string;
+}
+
+export interface Contractor {
+  id: string;
+  name: string;
+  companyName?: string;
+  tradeSpecialty: string; // e.g. Carpentry, Electrical, Plumbing, Painting, Civil & Tile, False Ceiling, Glass & Fabrication
+  phone: string;
+  email?: string;
+  address?: string;
+  gstin?: string;
+  pan?: string;
+  bankDetails?: {
+    accountNo?: string;
+    bankName?: string;
+    ifsc?: string;
+    holderName?: string;
+  };
+  status: "Active" | "Onboarding" | "Inactive";
+  projectContracts: ContractorProjectContract[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SubcontractorPayment {
   id: string;
   memberId: string;

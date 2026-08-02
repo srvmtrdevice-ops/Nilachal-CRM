@@ -17,6 +17,8 @@ service cloud.firestore {
     match /customer_requirements/{docId} { allow read, write: if true; }
     match /estimates/{docId} { allow read, write: if true; }
     match /subcontractor_payments/{docId} { allow read, write: if true; }
+    match /contractors/{docId} { allow read, write: if true; }
+    match /contractor_payments/{docId} { allow read, write: if true; }
     match /app_config/{docId} { allow read, write: if true; }
     match /users/{docId} { allow read, write: if true; }
 

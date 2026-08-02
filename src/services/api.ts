@@ -6,387 +6,54 @@ import { db } from "../firebase";
 import { 
   Customer, Project, PortfolioItem, Warranty, Payment, 
   ProjectUpdate, TeamMember, InventoryItem, DocumentRecord,
-  CustomerRequirements, Estimate, ScheduleItem, SubcontractorPayment
+  CustomerRequirements, Estimate, ScheduleItem, SubcontractorPayment,
+  Contractor, ContractorPayment
 } from "../types";
 
 // Dynamic Fallback Storage Wrapper
 const useLocalStorageFallback = true; 
 
-// Initial Mock Data to seed the application beautifully!
-const initialCustomers: Customer[] = [
-  {
-    id: "cust_1",
-    name: "Dr. Alok Mohapatra",
-    phone: "+91 98000 12345",
-    email: "alok.mohapatra@gmail.com",
-    address: "Bhubaneswar",
-    projectLocation: "Bhubaneswar",
-    leadSource: "Direct",
-    dateOfInquiry: "2026-04-10",
-    budget: 1200000,
-    status: "In Progress",
-    notes: "Minimalist design preference with extensive wardrobe and kitchen requirements.",
-    createdAt: "2026-04-10T15:30:00Z",
-    updatedAt: "2026-04-10T15:30:00Z"
-  },
-  {
-    id: "cust_2",
-    name: "Sarmistha Dash",
-    phone: "+91 98610 67890",
-    email: "sarmistha.dash@outlook.com",
-    address: "Duplex 12, DN Regalia Enclave",
-    projectLocation: "Patia, Bhubaneswar",
-    leadSource: "Referral By Architect",
-    dateOfInquiry: "2026-05-01",
-    budget: 850000,
-    status: "Design",
-    notes: "Requires standard modular kitchen and 3 wardrobes.",
-    createdAt: "2026-05-01T11:00:00Z",
-    updatedAt: "2026-05-01T11:00:00Z"
-  }
-];
-
-const initialProjects: Project[] = [
-  {
-    id: "proj_1",
-    customerId: "cust_1",
-    customerName: "Dr. Alok Mohapatra",
-    roomTypes: ["Living Room", "Modular Kitchen", "Master Bedroom"],
-    stylePreference: "Minimal",
-    colorPreferences: "Warm beige, sage green accents, walnut wood veneer",
-    materialPreferences: "18mm BWP Plywood, Century MDF, Merino high gloss laminate",
-    furnitureRequirements: "L-shape sofa, console table, customized study table",
-    falseCeiling: true,
-    lighting: "Magnetic track profile lights, warm 3000k cob spotlights",
-    electricalRequirements: "Two additional 16A points for microoven and baking deck",
-    kitchenDetails: "G-profile handles, Hafele tandem boxes, quartz countertop",
-    wardrobeDetails: "Lacquer glass sliding wardrobe with sensor-activated strip profiles",
-    timelineWeeks: 8,
-    budget: 1200000,
-    referenceImages: [],
-    siteMeasurements: [
-      { room: "Kitchen Area", length: 12, width: 8.5, quantity: 1, area: 102, remarks: "Water point corner check" },
-      { room: "Living Console", length: 15, width: 1.5, quantity: 1, area: 22.5, remarks: "Electrical casing alignment" }
-    ],
-    designNotes: "Keep the kitchen counters clear and incorporate integrated profile handles.",
-    qrCode: "",
-    createdAt: "2026-04-12T15:30:00Z",
-    updatedAt: "2026-05-12T15:30:00Z"
-  },
-  {
-    id: "proj_2",
-    customerId: "cust_2",
-    customerName: "Sarmistha Dash",
-    roomTypes: ["Living Room", "Modular Kitchen", "Master Bedroom"],
-    stylePreference: "Modern",
-    colorPreferences: "Neutral tones, wood grain accents",
-    materialPreferences: "18mm BWP Plywood, Merino laminates",
-    furnitureRequirements: "Slim design wall-mounted entry console box",
-    falseCeiling: false,
-    lighting: "Warm LED profiles",
-    electricalRequirements: "Standard provisions",
-    kitchenDetails: "Profile handle-less drawers, matte anti-fingerprint laminate",
-    wardrobeDetails: "Dual swing-door wardrobes in premium wood-grain laminates",
-    timelineWeeks: 6,
-    budget: 850000,
-    referenceImages: [],
-    siteMeasurements: [],
-    designNotes: "Modern matte anti-fingerprint kitchen with shoe storage console.",
-    qrCode: "",
-    createdAt: "2026-05-01T11:00:00Z",
-    updatedAt: "2026-06-27T10:35:00Z"
-  }
-];
-
-const initialPortfolio: PortfolioItem[] = [
-  {
-    id: "port_1",
-    title: "Luxurious Oak Modular Kitchen",
-    description: "Features anti-scratch matte charcoal shutters, automated touch-to-open overhead cabinets, and integrated premium Hafele hardware.",
-    location: "Trishulia, Cuttack",
-    areaSqFt: 180,
-    budgetRange: "₹4.5 - 6 Lakhs",
-    completionDate: "2026-03-15",
-    category: "Modular Kitchen",
-    beforeImage: "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800",
-    afterImage: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&q=80&w=800",
-    galleryImages: []
-  },
-  {
-    id: "port_2",
-    title: "Minimalist Scandinavian Living Lounge",
-    description: "Designed utilizing custom walnut veneers, hidden cable routing, and a custom slatted wood acoustic panel backdrop.",
-    location: "Jaydev Vihar, Bhubaneswar",
-    areaSqFt: 320,
-    budgetRange: "₹6 - 8 Lakhs",
-    completionDate: "2026-04-20",
-    category: "Living Room",
-    beforeImage: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
-    afterImage: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=800",
-    galleryImages: []
-  }
-];
-
-const initialWarranties: Warranty[] = [
-  {
-    id: "warr_1",
-    projectId: "proj_1",
-    projectName: "Dr. Alok Mohapatra Residence",
-    customerName: "Dr. Alok Mohapatra",
-    customerEmail: "alok.mohapatra@gmail.com",
-    productInstalled: "Hafele Hydraulic Lift Pump Cylinders",
-    brand: "Hafele",
-    startDate: "2026-05-15",
-    endDate: "2031-05-15",
-    warrantyCardUrl: "NC_WARR_HAFELE_4412.pdf",
-    invoiceUrl: "INV_HAFELE_4412.pdf",
-    serviceHistory: [
-      { date: "2026-05-16", type: "Inspection", description: "Checked post-installation alignment", cost: 0, status: "Completed" }
-    ],
-    createdAt: "2026-05-15T12:00:00Z"
-  }
-];
-
-const initialPayments: Payment[] = [
-  {
-    id: "pay_1",
-    projectId: "proj_1",
-    projectName: "Dr. Alok Mohapatra Site",
-    customerName: "Dr. Alok Mohapatra",
-    customerEmail: "alok.mohapatra@gmail.com",
-    amount: 400000,
-    type: "Advance",
-    date: "2026-04-12",
-    status: "Paid",
-    invoiceNumber: "NC-2026-1044",
-    notes: "Initial advance for plywood procurement.",
-    createdAt: "2026-04-12T15:30:00Z"
-  },
-  {
-    id: "pay_2",
-    projectId: "proj_1",
-    projectName: "Dr. Alok Mohapatra Site",
-    customerName: "Dr. Alok Mohapatra",
-    customerEmail: "alok.mohapatra@gmail.com",
-    amount: 350000,
-    type: "Progressive",
-    date: "2026-05-25",
-    status: "Pending",
-    invoiceNumber: "NC-2026-1092",
-    notes: "Milestone payment for modular carcass assembling.",
-    createdAt: "2026-05-25T11:00:00Z"
-  }
-];
-
-const initialUpdates: ProjectUpdate[] = [
-  {
-    id: "upd_2",
-    projectId: "proj_1",
-    projectName: "Dr. Alok Mohapatra Site",
-    progressPercentage: 55,
-    statusText: "Laminate pasting and drawer channels",
-    workCompleted: "Anti-scratch laminates successfully hot-pressed to cabinet shutters. Assembled 6 drawer runner sets.",
-    photos: ["https://images.unsplash.com/photo-1533090161767-e6ffed986c88?auto=format&fit=crop&q=80&w=400"],
-    date: "2026-05-26",
-    createdAt: "2026-05-26T18:00:00Z"
-  }
-];
-
-const initialTeam: TeamMember[] = [
-  {
-    id: "LmQA8gVMrmn6DQMvNPvy",
-    name: "Chandan Sharma",
-    role: "Carpenter",
-    phone: "+91 79032 08216",
-    email: "chandan@nilachal.com",
-    assignedTasks: [],
-    attendance: [],
-    createdAt: "2026-07-28T16:07:14.183Z"
-  },
-  {
-    id: "team_1",
-    name: "Sanjay Swain",
-    role: "Subcontractor Carpenter",
-    phone: "+91 98000 00001",
-    email: "sanjay@nilachal.com",
-    assignedTasks: [],
-    attendance: [],
-    createdAt: "2026-07-05T10:00:00Z"
-  },
-  {
-    id: "team_2",
-    name: "Pradip Jena",
-    role: "Site Supervisor",
-    phone: "+91 98000 00002",
-    email: "pradip@nilachal.com",
-    assignedTasks: [],
-    attendance: [],
-    createdAt: "2026-07-10T11:00:00Z"
-  }
-];
-
-const initialInventory: InventoryItem[] = [
-  {
-    id: "inv_1",
-    name: "CenturyPly 18mm Club Prime BWP",
-    category: "Plywood",
-    quantity: 45,
-    unit: "Sheets",
-    minRequired: 15,
-    location: "Patia Warehouse",
-    updatedAt: "2026-06-25T10:00:00Z"
-  },
-  {
-    id: "inv_2",
-    name: "Ebco Soft-Close Auto Hinges (110°)",
-    category: "Hardware Fittings",
-    quantity: 120,
-    unit: "Pairs",
-    minRequired: 30,
-    location: "Patia Warehouse",
-    updatedAt: "2026-06-25T10:00:00Z"
-  },
-  {
-    id: "inv_3",
-    name: "Fevicol SH Architectural Adhesive",
-    category: "Adhesive",
-    quantity: 8,
-    unit: "Buckets (10kg)",
-    minRequired: 10,
-    location: "Patia Warehouse",
-    updatedAt: "2026-06-25T10:00:00Z"
-  }
-];
-
-const initialRequirements: CustomerRequirements[] = [
-  {
-    id: "req_1",
-    customerId: "cust_1",
-    customerName: "Dr. Alok Mohapatra",
-    modularKitchen: true,
-    wardrobe: true,
-    falseCeiling: true,
-    tvUnit: true,
-    inverterBox: false,
-    shoeBox: true,
-    partition: true,
-    doorPanelling: false,
-    chowkathPanelling: false,
-    lockFitting: true,
-    mainDoorPanelling: true,
-    customKitchenSpec: "Premium high gloss white acrylic panels with seamless Hafele Blum tandem drawers.",
-    customKitchenSqft: "120",
-    customWardrobeSpec: "Full height walnut wood veneer sliding wardrobe with automated interior LED tracks.",
-    customWardrobeSqft: "180",
-    customFurnitureSpec: "L-shaped ergonomic lounge sofa in customized micro-suede fabric.",
-    customFurnitureSqft: "45",
-    customCeilingSpec: "Modern shadow-gap plaster board false ceiling with integrated magnetic profile rails.",
-    customCeilingSqft: "350",
-    dynamicCustomOrders: [
-      { label: "Pooja Mandir CNC Panel", value: "Custom teak wood CNC lattice partition screen with backlighting." }
-    ],
-    updatedAt: "2026-06-27T10:35:00Z"
-  },
-  {
-    id: "req_2",
-    customerId: "cust_2",
-    customerName: "Sarmistha Dash",
-    modularKitchen: true,
-    wardrobe: true,
-    falseCeiling: false,
-    tvUnit: true,
-    inverterBox: true,
-    shoeBox: false,
-    partition: false,
-    doorPanelling: false,
-    chowkathPanelling: false,
-    lockFitting: false,
-    mainDoorPanelling: false,
-    customKitchenSpec: "Modern matte anti-fingerprint laminate modular kitchen with profile handle-less drawers.",
-    customKitchenSqft: "95",
-    customWardrobeSpec: "Dual swing-door wardrobes in premium wood-grain laminates.",
-    customWardrobeSqft: "120",
-    customFurnitureSpec: "",
-    customFurnitureSqft: "",
-    customCeilingSpec: "",
-    customCeilingSqft: "",
-    dynamicCustomOrders: [
-      { label: "Living Entry Shoe Storage console", value: "Slim design wall-mounted entry console box." }
-    ],
-    updatedAt: "2026-06-27T10:35:00Z"
-  }
-];
-
-const initialSchedules: ScheduleItem[] = [
-  {
-    id: "sch_2",
-    projectId: "proj_2",
-    projectName: "Sarmistha Dash Residence",
-    customerName: "Sarmistha Dash",
-    title: "Initial Site Measurement & Ceiling Inspection",
-    date: "2026-07-30",
-    time: "03:00 PM",
-    purpose: "Measure false ceiling drop and beam locations",
-    assignedTo: "Pradip Jena",
-    status: "Scheduled"
-  }
-];
-
-const initialSubcontractorPayments: SubcontractorPayment[] = [
-  {
-    id: "sp_2",
-    memberId: "team_1",
-    memberName: "Sanjay Swain",
-    date: "2026-07-20",
-    amount: 25000,
-    paymentType: "Progress Payment",
-    projectName: "Dr. Alok Mohapatra Site",
-    paymentMode: "Bank Transfer",
-    referenceNo: "NEFT-3829108",
-    notes: "Completion of wardrobe panelling phase 1",
-    createdAt: "2026-07-20T14:30:00Z"
-  },
-  {
-    id: "sp_3",
-    memberId: "team_2",
-    memberName: "Pradip Jena",
-    date: "2026-07-10",
-    amount: 10000,
-    paymentType: "Advance",
-    projectName: "Sarmistha Dash Residence",
-    paymentMode: "Cash",
-    referenceNo: "CASH-REC-102",
-    notes: "Advance for false ceiling channel installation",
-    createdAt: "2026-07-10T11:00:00Z"
-  },
-  {
-    id: "sp_1",
-    memberId: "team_1",
-    memberName: "Sanjay Swain",
-    date: "2026-07-05",
-    amount: 15000,
-    paymentType: "Advance",
-    projectName: "Dr. Alok Mohapatra Site",
-    paymentMode: "UPI",
-    referenceNo: "UPI/38291047291",
-    notes: "Advance for modular kitchen carcass fabrication",
-    createdAt: "2026-07-05T10:00:00Z"
-  }
-];
+// Empty collections default (no dummy data)
+const initialCustomers: Customer[] = [];
+const initialProjects: Project[] = [];
+const initialPortfolio: PortfolioItem[] = [];
+const initialWarranties: Warranty[] = [];
+const initialPayments: Payment[] = [];
+const initialUpdates: ProjectUpdate[] = [];
+const initialTeam: TeamMember[] = [];
+const initialInventory: InventoryItem[] = [];
+const initialRequirements: CustomerRequirements[] = [];
+const initialSchedules: ScheduleItem[] = [];
+const initialSubcontractorPayments: SubcontractorPayment[] = [];
+const initialContractors: Contractor[] = [];
+const initialContractorPayments: ContractorPayment[] = [];
 
 
 // Helper to load localStorage with seeding fallback
 function getLocalStorageItem<T>(key: string, defaultSeeding: T[]): T[] {
   const versionKey = "nilachal_dataset_version";
-  const currentVersion = "1.0.0_revised_july28";
+  const currentVersion = "1.0.0_cleared_all_v3";
   if (localStorage.getItem(versionKey) !== currentVersion) {
-    // Clear old localStorage caches to apply revised dataset
+    // Clear old localStorage caches to wipe dummy data
     const collectionsToReset = [
       "customers", "projects", "portfolio", "warranties", "payments", 
       "updates", "team", "inventory", "customer_requirements", 
-      "estimates", "schedules", "subcontractor_payments"
+      "estimates", "documents", "schedules", "subcontractor_payments"
     ];
-    collectionsToReset.forEach(col => localStorage.removeItem(`nilachal_${col}`));
+    collectionsToReset.forEach(col => {
+      localStorage.removeItem(`nilachal_${col}`);
+      try {
+        getDocs(collection(db, col)).then(snap => {
+          if (!snap.empty) {
+            const batch = writeBatch(db);
+            snap.docs.forEach(docSnap => batch.delete(docSnap.ref));
+            batch.commit().catch(console.warn);
+          }
+        }).catch(console.warn);
+      } catch (e) {
+        console.warn("Error clearing Firestore docs for", col, e);
+      }
+    });
     localStorage.setItem(versionKey, currentVersion);
   }
 
@@ -451,6 +118,8 @@ export const api = {
   subscribeEstimates: (cb: (data: Estimate[]) => void) => api.subscribeToCollection("estimates", cb, []),
   subscribeSchedules: (cb: (data: ScheduleItem[]) => void) => api.subscribeToCollection("schedules", cb, initialSchedules),
   subscribeSubcontractorPayments: (cb: (data: SubcontractorPayment[]) => void) => api.subscribeToCollection("subcontractor_payments", cb, initialSubcontractorPayments),
+  subscribeContractors: (cb: (data: Contractor[]) => void) => api.subscribeToCollection("contractors", cb, initialContractors),
+  subscribeContractorPayments: (cb: (data: ContractorPayment[]) => void) => api.subscribeToCollection("contractor_payments", cb, initialContractorPayments),
 
   // 1. CUSTOMERS
   getCustomers: async (): Promise<Customer[]> => {
@@ -1144,7 +813,99 @@ export const api = {
     saveLocalStorageItem("subcontractor_payments", filtered);
   },
 
-  // 15. APP CONFIG & ACCOUNTS PASSCODE CLOUD SYNC
+  // 15. CONTRACTORS MANAGEMENT
+  getContractors: async (): Promise<Contractor[]> => {
+    try {
+      const snap = await getDocs(collection(db, "contractors"));
+      if (snap.empty) {
+        return getLocalStorageItem("contractors", initialContractors);
+      }
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as Contractor));
+    } catch {
+      return getLocalStorageItem("contractors", initialContractors);
+    }
+  },
+  addContractor: async (contractor: Omit<Contractor, "id" | "createdAt" | "updatedAt">): Promise<string> => {
+    const timestamp = new Date().toISOString();
+    const payload = {
+      ...contractor,
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+    try {
+      const docRef = await addDoc(collection(db, "contractors"), payload);
+      const local = getLocalStorageItem("contractors", initialContractors);
+      local.push({ id: docRef.id, ...payload });
+      saveLocalStorageItem("contractors", local);
+      return docRef.id;
+    } catch {
+      const local = getLocalStorageItem("contractors", initialContractors);
+      const newId = `cnt_${Date.now()}`;
+      local.push({ id: newId, ...payload });
+      saveLocalStorageItem("contractors", local);
+      return newId;
+    }
+  },
+  updateContractor: async (id: string, updates: Partial<Contractor>): Promise<void> => {
+    const timestamp = new Date().toISOString();
+    try {
+      await updateDoc(doc(db, "contractors", id), { ...updates, updatedAt: timestamp });
+    } catch {}
+    const local = getLocalStorageItem("contractors", initialContractors);
+    const updated = local.map(c => c.id === id ? { ...c, ...updates, updatedAt: timestamp } : c);
+    saveLocalStorageItem("contractors", updated);
+  },
+  deleteContractor: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "contractors", id));
+    } catch {}
+    const local = getLocalStorageItem("contractors", initialContractors);
+    const filtered = local.filter(c => c.id !== id);
+    saveLocalStorageItem("contractors", filtered);
+  },
+
+  // 16. CONTRACTOR PAYMENTS
+  getContractorPayments: async (): Promise<ContractorPayment[]> => {
+    try {
+      const snap = await getDocs(collection(db, "contractor_payments"));
+      if (snap.empty) {
+        return getLocalStorageItem("contractor_payments", initialContractorPayments);
+      }
+      return snap.docs.map(d => ({ id: d.id, ...d.data() } as ContractorPayment));
+    } catch {
+      return getLocalStorageItem("contractor_payments", initialContractorPayments);
+    }
+  },
+  addContractorPayment: async (payment: Omit<ContractorPayment, "id" | "createdAt">): Promise<string> => {
+    const timestamp = new Date().toISOString();
+    const payload = {
+      ...payment,
+      createdAt: timestamp
+    };
+    try {
+      const docRef = await addDoc(collection(db, "contractor_payments"), payload);
+      const local = getLocalStorageItem("contractor_payments", initialContractorPayments);
+      local.unshift({ id: docRef.id, ...payload });
+      saveLocalStorageItem("contractor_payments", local);
+      return docRef.id;
+    } catch {
+      const local = getLocalStorageItem("contractor_payments", initialContractorPayments);
+      const newId = `cntp_${Date.now()}`;
+      local.unshift({ id: newId, ...payload });
+      saveLocalStorageItem("contractor_payments", local);
+      return newId;
+    }
+  },
+  deleteContractorPayment: async (id: string): Promise<void> => {
+    try {
+      await deleteDoc(doc(db, "contractor_payments", id));
+    } catch {}
+    const local = getLocalStorageItem("contractor_payments", initialContractorPayments);
+    const filtered = local.filter(p => p.id !== id);
+    saveLocalStorageItem("contractor_payments", filtered);
+  },
+
+  // 17. APP CONFIG & ACCOUNTS PASSCODE CLOUD SYNC
   getAccountsPasscode: async (): Promise<string> => {
     try {
       const snap = await getDoc(doc(db, "app_config", "general"));
@@ -1192,6 +953,8 @@ export const api = {
       estimates: [],
       schedules: initialSchedules,
       subcontractor_payments: initialSubcontractorPayments,
+      contractors: initialContractors,
+      contractor_payments: initialContractorPayments,
     };
 
     for (const [colName, defaultData] of Object.entries(collectionsMap)) {

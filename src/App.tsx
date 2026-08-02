@@ -23,6 +23,7 @@ import PortfolioView from "./components/PortfolioView";
 import EstimateView from "./components/EstimateView";
 import ScheduleView from "./components/ScheduleView";
 import AccountsOfficeView from "./components/AccountsOfficeView";
+import { ContractorsView } from "./components/ContractorsView";
 import Logo from "./components/Logo";
 import AdminPasscodeGate from "./components/AdminPasscodeGate";
 
@@ -31,7 +32,8 @@ import { api } from "./services/api";
 import { 
   Customer, Project, PortfolioItem, Warranty, Payment, 
   ProjectUpdate, TeamMember, InventoryItem, DocumentRecord, ScheduleItem,
-  CustomerRequirements, Estimate, SubcontractorPayment
+  CustomerRequirements, Estimate, SubcontractorPayment,
+  Contractor, ContractorPayment
 } from "./types";
 
 type ActiveTab = 
@@ -46,6 +48,7 @@ type ActiveTab =
   | "warranties" 
   | "inventory" 
   | "team" 
+  | "contractors"
   | "payments" 
   | "accounts"
   | "portal" 
@@ -78,6 +81,8 @@ export default function App() {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
   const [subcontractorPayments, setSubcontractorPayments] = useState<SubcontractorPayment[]>([]);
+  const [contractors, setContractors] = useState<Contractor[]>([]);
+  const [contractorPayments, setContractorPayments] = useState<ContractorPayment[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [isSyncingBrowsers, setIsSyncingBrowsers] = useState(false);
@@ -118,7 +123,7 @@ export default function App() {
 
   useEffect(() => {
     let loadedCount = 0;
-    const totalCollections = 13;
+    const totalCollections = 15;
     const handleLoaded = () => {
       loadedCount++;
       if (loadedCount >= totalCollections) {
@@ -139,6 +144,8 @@ export default function App() {
     const unsubDoc = api.subscribeDocuments((data) => { setDocuments(data); handleLoaded(); });
     const unsubSch = api.subscribeSchedules((data) => { setSchedules(data); handleLoaded(); });
     const unsubSubPay = api.subscribeSubcontractorPayments((data) => { setSubcontractorPayments(data); handleLoaded(); });
+    const unsubCnt = api.subscribeContractors((data) => { setContractors(data); handleLoaded(); });
+    const unsubCntPay = api.subscribeContractorPayments((data) => { setContractorPayments(data); handleLoaded(); });
 
     const timeoutTimer = setTimeout(() => setLoading(false), 1500);
 
@@ -157,8 +164,41 @@ export default function App() {
       unsubDoc();
       unsubSch();
       unsubSubPay();
+      unsubCnt();
+      unsubCntPay();
     };
   }, []);
+
+  // Contractor Handler Functions
+  const handleAddContractor = async (cnt: Omit<Contractor, "id" | "createdAt" | "updatedAt">) => {
+    const id = await api.addContractor(cnt);
+    const timestamp = new Date().toISOString();
+    setContractors(prev => [...prev, { id, ...cnt, createdAt: timestamp, updatedAt: timestamp }]);
+    return id;
+  };
+
+  const handleUpdateContractor = async (id: string, updates: Partial<Contractor>) => {
+    await api.updateContractor(id, updates);
+    const timestamp = new Date().toISOString();
+    setContractors(prev => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: timestamp } : c));
+  };
+
+  const handleDeleteContractor = async (id: string) => {
+    await api.deleteContractor(id);
+    setContractors(prev => prev.filter(c => c.id !== id));
+  };
+
+  const handleAddContractorPayment = async (payment: Omit<ContractorPayment, "id" | "createdAt">) => {
+    const id = await api.addContractorPayment(payment);
+    const timestamp = new Date().toISOString();
+    setContractorPayments(prev => [{ id, ...payment, createdAt: timestamp }, ...prev]);
+    return id;
+  };
+
+  const handleDeleteContractorPayment = async (id: string) => {
+    await api.deleteContractorPayment(id);
+    setContractorPayments(prev => prev.filter(p => p.id !== id));
+  };
 
 
   // API Call wrappers to maintain real-time state synchronization
@@ -517,7 +557,7 @@ export default function App() {
     { id: "updates", label: "Daily Logs", icon: CalendarClock },
     { id: "documents", label: "Documents", icon: FileText },
     { id: "warranties", label: "Warranties", icon: ShieldCheck },
-    { id: "team", label: "Subcontractors", icon: Hammer },
+    { id: "contractors", label: "Contractors", icon: Hammer },
     { id: "payments", label: "Ledger & Invoices", icon: Landmark },
     { id: "accounts", label: "Accounts Office", icon: Building },
     { id: "portal", label: "Client Portal", icon: UserCheck },
@@ -797,18 +837,16 @@ export default function App() {
                 />
               )}
 
-              {activeTab === "team" && (
-                <TeamView 
-                  team={team}
+              {activeTab === "contractors" && (
+                <ContractorsView 
+                  contractors={contractors}
+                  contractorPayments={contractorPayments}
                   projects={projects}
-                  subcontractorPayments={subcontractorPayments}
-                  onAdd={handleAddTeamMember}
-                  onUpdate={handleUpdateTeamMember}
-                  onDelete={handleDeleteTeamMember}
-                  onAddTask={handleAddTeamTask}
-                  onToggleAttendance={handleToggleAttendance}
-                  onAddPayment={handleAddSubcontractorPayment}
-                  onDeletePayment={handleDeleteSubcontractorPayment}
+                  onAddContractor={handleAddContractor}
+                  onUpdateContractor={handleUpdateContractor}
+                  onDeleteContractor={handleDeleteContractor}
+                  onAddPayment={handleAddContractorPayment}
+                  onDeletePayment={handleDeleteContractorPayment}
                 />
               )}
 
