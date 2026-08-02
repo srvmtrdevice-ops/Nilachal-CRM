@@ -17,17 +17,17 @@ const initialCustomers: Customer[] = [
   {
     id: "cust_1",
     name: "Dr. Alok Mohapatra",
-    phone: "+91 94370 12345",
+    phone: "+91 98000 12345",
     email: "alok.mohapatra@gmail.com",
-    address: "Plot 422, Forest Park",
-    projectLocation: "Forest Park, Bhubaneswar",
-    leadSource: "Instagram Profile",
+    address: "Bhubaneswar",
+    projectLocation: "Bhubaneswar",
+    leadSource: "Direct",
     dateOfInquiry: "2026-04-10",
     budget: 1200000,
     status: "In Progress",
-    notes: "Client expects a warm minimalist design with walnut finishes.",
-    createdAt: "2026-04-10T10:00:00Z",
-    updatedAt: "2026-04-12T15:30:00Z"
+    notes: "Minimalist design preference with extensive wardrobe and kitchen requirements.",
+    createdAt: "2026-04-10T15:30:00Z",
+    updatedAt: "2026-04-10T15:30:00Z"
   },
   {
     id: "cust_2",
@@ -72,6 +72,29 @@ const initialProjects: Project[] = [
     qrCode: "",
     createdAt: "2026-04-12T15:30:00Z",
     updatedAt: "2026-05-12T15:30:00Z"
+  },
+  {
+    id: "proj_2",
+    customerId: "cust_2",
+    customerName: "Sarmistha Dash",
+    roomTypes: ["Living Room", "Modular Kitchen", "Master Bedroom"],
+    stylePreference: "Modern",
+    colorPreferences: "Neutral tones, wood grain accents",
+    materialPreferences: "18mm BWP Plywood, Merino laminates",
+    furnitureRequirements: "Slim design wall-mounted entry console box",
+    falseCeiling: false,
+    lighting: "Warm LED profiles",
+    electricalRequirements: "Standard provisions",
+    kitchenDetails: "Profile handle-less drawers, matte anti-fingerprint laminate",
+    wardrobeDetails: "Dual swing-door wardrobes in premium wood-grain laminates",
+    timelineWeeks: 6,
+    budget: 850000,
+    referenceImages: [],
+    siteMeasurements: [],
+    designNotes: "Modern matte anti-fingerprint kitchen with shoe storage console.",
+    qrCode: "",
+    createdAt: "2026-05-01T11:00:00Z",
+    updatedAt: "2026-06-27T10:35:00Z"
   }
 ];
 
@@ -157,17 +180,6 @@ const initialPayments: Payment[] = [
 
 const initialUpdates: ProjectUpdate[] = [
   {
-    id: "upd_1",
-    projectId: "proj_1",
-    projectName: "Dr. Alok Mohapatra Site",
-    progressPercentage: 40,
-    statusText: "Carpentry Framework Assembling",
-    workCompleted: "Plywood cutting finished. Core modular kitchen cabinets successfully assembled and leveled.",
-    photos: ["https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&q=80&w=400"],
-    date: "2026-05-12",
-    createdAt: "2026-05-12T18:00:00Z"
-  },
-  {
     id: "upd_2",
     projectId: "proj_1",
     projectName: "Dr. Alok Mohapatra Site",
@@ -182,26 +194,34 @@ const initialUpdates: ProjectUpdate[] = [
 
 const initialTeam: TeamMember[] = [
   {
-    id: "team_1",
-    name: "Sanjay Kumar Swain",
+    id: "LmQA8gVMrmn6DQMvNPvy",
+    name: "Chandan Sharma",
     role: "Carpenter",
-    phone: "+91 94371 44556",
-    email: "sanjay.swain@nilachal.com",
-    assignedTasks: [
-      { id: "task_1", title: "Mount kitchen soft-close hinges", projectId: "proj_1", projectName: "Alok Mohapatra Site", dueDate: "2026-06-02", status: "Pending" }
-    ],
-    attendance: ["2026-06-01", "2026-06-02"],
-    createdAt: "2026-05-01T10:00:00Z"
+    phone: "+91 79032 08216",
+    email: "chandan@nilachal.com",
+    assignedTasks: [],
+    attendance: [],
+    createdAt: "2026-07-28T16:07:14.183Z"
+  },
+  {
+    id: "team_1",
+    name: "Sanjay Swain",
+    role: "Subcontractor Carpenter",
+    phone: "+91 98000 00001",
+    email: "sanjay@nilachal.com",
+    assignedTasks: [],
+    attendance: [],
+    createdAt: "2026-07-05T10:00:00Z"
   },
   {
     id: "team_2",
     name: "Pradip Jena",
-    role: "Painter",
-    phone: "+91 98533 11223",
-    email: "pradip.jena@nilachal.com",
+    role: "Site Supervisor",
+    phone: "+91 98000 00002",
+    email: "pradip@nilachal.com",
     assignedTasks: [],
-    attendance: ["2026-06-01"],
-    createdAt: "2026-05-02T10:00:00Z"
+    attendance: [],
+    createdAt: "2026-07-10T11:00:00Z"
   }
 ];
 
@@ -299,20 +319,8 @@ const initialRequirements: CustomerRequirements[] = [
 
 const initialSchedules: ScheduleItem[] = [
   {
-    id: "sch_1",
-    projectId: "proj_1",
-    projectName: "Dr. Alok Mohapatra Site",
-    customerName: "Dr. Alok Mohapatra",
-    title: "Electrical & Modular Layout Verification",
-    date: "2026-07-28",
-    time: "11:30 AM",
-    purpose: "Check water plumbing inlet clearance for modular sink",
-    assignedTo: "Sanjay Swain",
-    status: "Scheduled"
-  },
-  {
     id: "sch_2",
-    projectId: "proj_1",
+    projectId: "proj_2",
     projectName: "Sarmistha Dash Residence",
     customerName: "Sarmistha Dash",
     title: "Initial Site Measurement & Ceiling Inspection",
@@ -325,19 +333,6 @@ const initialSchedules: ScheduleItem[] = [
 ];
 
 const initialSubcontractorPayments: SubcontractorPayment[] = [
-  {
-    id: "sp_1",
-    memberId: "team_1",
-    memberName: "Sanjay Swain",
-    date: "2026-07-05",
-    amount: 15000,
-    paymentType: "Advance",
-    projectName: "Dr. Alok Mohapatra Site",
-    paymentMode: "UPI",
-    referenceNo: "UPI/38291047291",
-    notes: "Advance for modular kitchen carcass fabrication",
-    createdAt: "2026-07-05T10:00:00Z"
-  },
   {
     id: "sp_2",
     memberId: "team_1",
@@ -363,12 +358,38 @@ const initialSubcontractorPayments: SubcontractorPayment[] = [
     referenceNo: "CASH-REC-102",
     notes: "Advance for false ceiling channel installation",
     createdAt: "2026-07-10T11:00:00Z"
+  },
+  {
+    id: "sp_1",
+    memberId: "team_1",
+    memberName: "Sanjay Swain",
+    date: "2026-07-05",
+    amount: 15000,
+    paymentType: "Advance",
+    projectName: "Dr. Alok Mohapatra Site",
+    paymentMode: "UPI",
+    referenceNo: "UPI/38291047291",
+    notes: "Advance for modular kitchen carcass fabrication",
+    createdAt: "2026-07-05T10:00:00Z"
   }
 ];
 
 
 // Helper to load localStorage with seeding fallback
 function getLocalStorageItem<T>(key: string, defaultSeeding: T[]): T[] {
+  const versionKey = "nilachal_dataset_version";
+  const currentVersion = "1.0.0_revised_july28";
+  if (localStorage.getItem(versionKey) !== currentVersion) {
+    // Clear old localStorage caches to apply revised dataset
+    const collectionsToReset = [
+      "customers", "projects", "portfolio", "warranties", "payments", 
+      "updates", "team", "inventory", "customer_requirements", 
+      "estimates", "schedules", "subcontractor_payments"
+    ];
+    collectionsToReset.forEach(col => localStorage.removeItem(`nilachal_${col}`));
+    localStorage.setItem(versionKey, currentVersion);
+  }
+
   const localVal = localStorage.getItem(`nilachal_${key}`);
   if (!localVal) {
     localStorage.setItem(`nilachal_${key}`, JSON.stringify(defaultSeeding));

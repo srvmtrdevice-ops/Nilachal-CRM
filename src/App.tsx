@@ -517,7 +517,6 @@ export default function App() {
     { id: "updates", label: "Daily Logs", icon: CalendarClock },
     { id: "documents", label: "Documents", icon: FileText },
     { id: "warranties", label: "Warranties", icon: ShieldCheck },
-    { id: "inventory", label: "Inventory", icon: Package },
     { id: "team", label: "Subcontractors", icon: Hammer },
     { id: "payments", label: "Ledger & Invoices", icon: Landmark },
     { id: "accounts", label: "Accounts Office", icon: Building },
@@ -795,14 +794,6 @@ export default function App() {
                   projects={projects}
                   onAdd={handleAddWarranty}
                   onAddService={handleAddWarrantyService}
-                />
-              )}
-
-              {activeTab === "inventory" && (
-                <InventoryView 
-                  inventory={inventory}
-                  onAdd={handleAddInventory}
-                  onAddStock={handleAddInventoryStock}
                 />
               )}
 

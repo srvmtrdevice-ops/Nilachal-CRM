@@ -209,7 +209,7 @@ export interface SubcontractorPayment {
 export interface TeamMember {
   id: string;
   name: string;
-  role: "Carpenter" | "Electrician" | "Plumber" | "Painter" | "Supervisor" | "Designer";
+  role: "Carpenter" | "Electrician" | "Plumber" | "Painter" | "Supervisor" | "Designer" | "Subcontractor Carpenter" | "Site Supervisor" | string;
   phone: string;
   email: string;
   assignedTasks: TeamTask[];
