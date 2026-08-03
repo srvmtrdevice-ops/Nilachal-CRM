@@ -582,17 +582,19 @@ export default function App() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          {/* Sync Across Browsers Button */}
-          <button
-            onClick={handleSyncAcrossBrowsers}
-            disabled={isSyncingBrowsers}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FFBE0B] hover:bg-amber-400 text-stone-950 font-mono font-bold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl transition shadow-md disabled:opacity-60 cursor-pointer"
-            title="Synchronize all data live across all web browsers and devices"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isSyncingBrowsers ? "animate-spin text-stone-950" : ""}`} />
-            <span className="hidden sm:inline">{isSyncingBrowsers ? "Syncing..." : "Sync Across Browsers"}</span>
-            <span className="sm:hidden">{isSyncingBrowsers ? "Syncing" : "Sync"}</span>
-          </button>
+          {/* Sync Across Browsers Button - Hidden in Client Portal */}
+          {activeTab !== "portal" && (
+            <button
+              onClick={handleSyncAcrossBrowsers}
+              disabled={isSyncingBrowsers}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#FFBE0B] hover:bg-amber-400 text-stone-950 font-mono font-bold text-[11px] sm:text-xs uppercase tracking-wider rounded-xl transition shadow-md disabled:opacity-60 cursor-pointer"
+              title="Synchronize all data live across all web browsers and devices"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isSyncingBrowsers ? "animate-spin text-stone-950" : ""}`} />
+              <span className="hidden sm:inline">{isSyncingBrowsers ? "Syncing..." : "Sync Across Browsers"}</span>
+              <span className="sm:hidden">{isSyncingBrowsers ? "Syncing" : "Sync"}</span>
+            </button>
+          )}
 
           {/* Desktop Quick Indicator */}
           <div className="hidden lg:flex items-center gap-3 text-xs bg-stone-950 border border-stone-800 rounded-full px-3.5 py-1.5">

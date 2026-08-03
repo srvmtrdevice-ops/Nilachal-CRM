@@ -29,45 +29,139 @@ const initialContractors: Contractor[] = [];
 const initialContractorPayments: ContractorPayment[] = [];
 
 
-// Helper to load localStorage with seeding fallback
+// Helper to load localStorage safely without destroying cloud or local data
 function getLocalStorageItem<T>(key: string, defaultSeeding: T[]): T[] {
-  const versionKey = "nilachal_dataset_version";
-  const currentVersion = "1.0.0_cleared_all_v3";
-  if (localStorage.getItem(versionKey) !== currentVersion) {
-    // Clear old localStorage caches to wipe dummy data
-    const collectionsToReset = [
-      "customers", "projects", "portfolio", "warranties", "payments", 
-      "updates", "team", "inventory", "customer_requirements", 
-      "estimates", "documents", "schedules", "subcontractor_payments"
-    ];
-    collectionsToReset.forEach(col => {
-      localStorage.removeItem(`nilachal_${col}`);
-      try {
-        getDocs(collection(db, col)).then(snap => {
-          if (!snap.empty) {
-            const batch = writeBatch(db);
-            snap.docs.forEach(docSnap => batch.delete(docSnap.ref));
-            batch.commit().catch(console.warn);
-          }
-        }).catch(console.warn);
-      } catch (e) {
-        console.warn("Error clearing Firestore docs for", col, e);
-      }
-    });
-    localStorage.setItem(versionKey, currentVersion);
-  }
-
   const localVal = localStorage.getItem(`nilachal_${key}`);
   if (!localVal) {
-    localStorage.setItem(`nilachal_${key}`, JSON.stringify(defaultSeeding));
+    if (defaultSeeding.length > 0) {
+      localStorage.setItem(`nilachal_${key}`, JSON.stringify(defaultSeeding));
+    }
     return defaultSeeding;
   }
-  return JSON.parse(localVal);
+  try {
+    return JSON.parse(localVal);
+  } catch {
+    return defaultSeeding;
+  }
 }
 
 // Helper to save localStorage
 function saveLocalStorageItem<T>(key: string, data: T[]) {
   localStorage.setItem(`nilachal_${key}`, JSON.stringify(data));
+}
+
+// Helper to compute a semantic deduplication key for an item in a collection
+function getItemDedupeKey(collectionName: string, item: any): string {
+  if (!item || typeof item !== "object") return "";
+
+  const clean = (str: any) => (str ? String(str).trim().toLowerCase() : "");
+
+  switch (collectionName) {
+    case "customers": {
+      const name = clean(item.name);
+      const phone = clean(item.phone || item.email);
+      if (name && phone) return `customers_${name}_${phone}`;
+      if (name) return `customers_${name}`;
+      break;
+    }
+    case "projects": {
+      const name = clean(item.name || item.projectName);
+      const client = clean(item.clientName || item.customerName);
+      if (name && client) return `projects_${name}_${client}`;
+      if (name) return `projects_${name}`;
+      break;
+    }
+    case "contractors": {
+      const name = clean(item.name);
+      const phone = clean(item.phone);
+      if (name && phone) return `contractors_${name}_${phone}`;
+      if (name) return `contractors_${name}`;
+      break;
+    }
+    case "payments": {
+      const amt = item.amount || 0;
+      const date = clean(item.date).slice(0, 10);
+      const cust = clean(item.customerId || item.customerName);
+      const cat = clean(item.paymentCategory || item.category);
+      if (amt && (cust || date)) return `payments_${cust}_${amt}_${date}_${cat}`;
+      break;
+    }
+    case "contractor_payments": {
+      const amt = item.amount || 0;
+      const date = clean(item.date).slice(0, 10);
+      const contractor = clean(item.contractorId || item.contractorName);
+      if (amt && (contractor || date)) return `contractor_payments_${contractor}_${amt}_${date}`;
+      break;
+    }
+    case "subcontractor_payments": {
+      const amt = item.amount || 0;
+      const date = clean(item.date).slice(0, 10);
+      const sub = clean(item.subcontractorName || item.contractorName);
+      if (amt && (sub || date)) return `subcontractor_payments_${sub}_${amt}_${date}`;
+      break;
+    }
+    case "inventory": {
+      const name = clean(item.name);
+      const category = clean(item.category);
+      if (name) return `inventory_${name}_${category}`;
+      break;
+    }
+    case "documents": {
+      const title = clean(item.title || item.fileName);
+      const proj = clean(item.projectId);
+      if (title) return `documents_${title}_${proj}`;
+      break;
+    }
+    case "estimates": {
+      const num = clean(item.estimateNumber);
+      const title = clean(item.title || item.clientName);
+      const amt = item.totalAmount || item.grandTotal || 0;
+      if (num) return `estimates_num_${num}`;
+      if (title && amt) return `estimates_${title}_${amt}`;
+      break;
+    }
+    case "portfolio": {
+      const title = clean(item.title);
+      const cat = clean(item.category);
+      if (title) return `portfolio_${title}_${cat}`;
+      break;
+    }
+    case "warranties": {
+      const wid = clean(item.warrantyId || item.serialNumber);
+      const cust = clean(item.customerName || item.clientName);
+      const addr = clean(item.projectAddress || item.address);
+      if (wid) return `warranties_id_${wid}`;
+      if (cust && addr) return `warranties_${cust}_${addr}`;
+      break;
+    }
+    case "updates": {
+      const proj = clean(item.projectId);
+      const date = clean(item.date).slice(0, 10);
+      const text = clean(item.title || item.updateText).slice(0, 25);
+      if (proj && (date || text)) return `updates_${proj}_${date}_${text}`;
+      break;
+    }
+    case "team": {
+      const name = clean(item.name);
+      const phone = clean(item.phone || item.role);
+      if (name) return `team_${name}_${phone}`;
+      break;
+    }
+    case "schedules": {
+      const task = clean(item.taskName || item.title);
+      const proj = clean(item.projectId);
+      if (task) return `schedules_${task}_${proj}`;
+      break;
+    }
+    case "customer_requirements": {
+      const name = clean(item.customerName || item.name);
+      const phone = clean(item.phone);
+      if (name) return `reqs_${name}_${phone}`;
+      break;
+    }
+  }
+
+  return item.id ? `${collectionName}_id_${item.id}` : "";
 }
 
 // API Service exports wrapping database fetch
@@ -80,24 +174,40 @@ export const api = {
   ) => {
     const colRef = collection(db, collectionName);
     return onSnapshot(colRef, async (snap) => {
-      if (snap.empty && defaultSeeding.length > 0) {
-        const localItems = getLocalStorageItem(collectionName, defaultSeeding);
-        const itemsToSeed = localItems.length > 0 ? localItems : defaultSeeding;
+      const cloudItems: T[] = snap.docs.map(d => ({ id: d.id, ...d.data() } as T));
+      const localItems = getLocalStorageItem(collectionName, defaultSeeding);
+
+      // Additive merge of local and cloud items so local additions are retained
+      const combinedMap = new Map<string, T>();
+      localItems.forEach(item => {
+        if (item && item.id) combinedMap.set(item.id, item);
+      });
+
+      cloudItems.forEach(item => {
+        if (item && item.id) {
+          const existing = combinedMap.get(item.id);
+          combinedMap.set(item.id, existing ? { ...existing, ...item } : item);
+        }
+      });
+
+      const mergedList = Array.from(combinedMap.values());
+      saveLocalStorageItem(collectionName, mergedList);
+      onData(mergedList);
+
+      // Push any local items not yet in cloud to Firestore
+      if (mergedList.length > snap.docs.length) {
         try {
           const batch = writeBatch(db);
-          itemsToSeed.forEach((item) => {
-            const itemDocRef = doc(db, collectionName, item.id);
-            batch.set(itemDocRef, item);
+          mergedList.forEach(item => {
+            if (item && item.id) {
+              const itemDocRef = doc(db, collectionName, item.id);
+              batch.set(itemDocRef, item, { merge: true });
+            }
           });
           await batch.commit();
         } catch (e) {
-          console.warn(`Seeding ${collectionName} error:`, e);
+          console.warn(`Auto-push local additions for ${collectionName} error:`, e);
         }
-        onData(itemsToSeed);
-      } else {
-        const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as T));
-        saveLocalStorageItem(collectionName, items);
-        onData(items);
       }
     }, (err) => {
       console.warn(`Realtime sub error for ${collectionName}:`, err);
@@ -937,7 +1047,7 @@ export const api = {
     });
   },
 
-  // 16. SYNC ALL DATA ACROSS ALL BROWSERS
+  // 16. SYNC ALL DATA ACROSS ALL BROWSERS (ADDITIVE MERGE & DEDUPLICATION)
   syncAllDataAcrossBrowsers: async (): Promise<void> => {
     const collectionsMap: { [key: string]: any[] } = {
       customers: initialCustomers,
@@ -958,20 +1068,97 @@ export const api = {
     };
 
     for (const [colName, defaultData] of Object.entries(collectionsMap)) {
-      const localItems = getLocalStorageItem(colName, defaultData);
-      if (localItems && localItems.length > 0) {
+      try {
+        // 1. Fetch cloud records
+        let cloudDocs: any[] = [];
         try {
-          const batch = writeBatch(db);
-          localItems.forEach((item: any) => {
-            if (item && item.id) {
-              const itemRef = doc(db, colName, item.id);
-              batch.set(itemRef, item, { merge: true });
-            }
-          });
-          await batch.commit();
+          const snap = await getDocs(collection(db, colName));
+          cloudDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         } catch (e) {
-          console.warn(`Sync batch error for ${colName}:`, e);
+          console.warn(`Error fetching cloud docs for ${colName}:`, e);
         }
+
+        // 2. Fetch local records
+        const localDocs = getLocalStorageItem(colName, defaultData);
+
+        // 3. Combine cloud and local records (ADDITIVE: nothing gets wiped)
+        const combined = [...cloudDocs, ...localDocs];
+
+        // 4. Group & Merge by ID first
+        const idMap = new Map<string, any>();
+        combined.forEach(item => {
+          if (item && item.id) {
+            const existing = idMap.get(item.id);
+            if (!existing) {
+              idMap.set(item.id, { ...item });
+            } else {
+              // Merge properties: retain non-empty fields from both
+              const merged = { ...existing, ...item };
+              Object.keys(existing).forEach(key => {
+                if (merged[key] === undefined || merged[key] === null || merged[key] === "") {
+                  merged[key] = existing[key];
+                }
+              });
+              idMap.set(item.id, merged);
+            }
+          }
+        });
+
+        // 5. Semantic Deduplication (Remove duplicate records with different IDs)
+        const cleanItems: any[] = [];
+        const duplicateDocIdsToDelete: string[] = [];
+        const seenSemanticKeys = new Map<string, any>();
+
+        for (const item of idMap.values()) {
+          const dedupeKey = getItemDedupeKey(colName, item);
+          if (dedupeKey && seenSemanticKeys.has(dedupeKey)) {
+            // Found a duplicate item!
+            const master = seenSemanticKeys.get(dedupeKey);
+
+            // Merge any missing fields into master
+            Object.keys(item).forEach(k => {
+              if (item[k] !== undefined && item[k] !== null && item[k] !== "" && (master[k] === undefined || master[k] === null || master[k] === "")) {
+                master[k] = item[k];
+              }
+            });
+
+            // Mark the duplicate doc for deletion from cloud if it exists in cloud
+            const isDuplicateInCloud = cloudDocs.some(c => c.id === item.id);
+            if (isDuplicateInCloud && item.id !== master.id) {
+              duplicateDocIdsToDelete.push(item.id);
+            }
+          } else {
+            if (dedupeKey) {
+              seenSemanticKeys.set(dedupeKey, item);
+            }
+            cleanItems.push(item);
+          }
+        }
+
+        // 6. Write clean merged items to Firestore & remove duplicates
+        const batch = writeBatch(db);
+
+        // Add / Update clean items in Firestore
+        cleanItems.forEach(item => {
+          if (item && item.id) {
+            const itemRef = doc(db, colName, item.id);
+            batch.set(itemRef, item, { merge: true });
+          }
+        });
+
+        // Delete duplicate records from Firestore
+        duplicateDocIdsToDelete.forEach(dupId => {
+          const itemRef = doc(db, colName, dupId);
+          batch.delete(itemRef);
+        });
+
+        await batch.commit();
+
+        // 7. Update localStorage with clean deduplicated list
+        saveLocalStorageItem(colName, cleanItems);
+
+      } catch (e) {
+        console.warn(`Sync error for ${colName}:`, e);
       }
     }
 
